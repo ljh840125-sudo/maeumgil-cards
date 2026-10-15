@@ -16,20 +16,19 @@ TITLE = os.path.join(FONT, "gowun-batang-korean-700-normal.woff")
 SANS = {w: os.path.join(FONT, f"Pretendard-{w}.otf") for w in ("Regular", "SemiBold", "Bold", "ExtraBold")}
 
 THEMES = {
+    # 몽글몽글 포근한 톤: 크림 살구 배경 + 코코아 글씨 + 더스티 로즈 포인트
+    "warm": {"bg": (250, 241, 233), "title": (78, 60, 66), "body": (112, 96, 100), "accent": (204, 128, 118), "muted": (160, 140, 136),
+             "blobs": [((246, 212, 198), (0.85, 0.12, 0.38)), ((236, 222, 242), (0.08, 0.9, 0.42)), ((252, 228, 210), (0.95, 0.75, 0.25))]},
     "dark": {"bg": (27, 26, 46), "title": (255, 255, 255), "body": (204, 200, 222), "accent": (232, 190, 120), "muted": (150, 146, 172)},
     "light": {"bg": (246, 240, 230), "title": (40, 38, 62), "body": (88, 84, 104), "accent": (184, 136, 72), "muted": (140, 132, 120)},
 }
 
-PROFILE = {
-    "type": "profile",
-    "label": "글쓴이",
-    "title": ["마음길연구소", "이지혜 소장"],
-    "items": [
-        "상담대학원 석사 과정 · 중독상담 전공",
-        "직장인·커플·개인 2,000여 명 상담",
-        "TCI · MMPI · 교류분석 · NLP · 애착유형",
-        "당신의 마음을 듣고, 함께 답을 찾습니다",
-    ],
+BOOKING = {
+    "type": "booking",
+    "label": "마음길연구소",
+    "title": ["혼자 풀기 어려운 마음,", "같이 들여다봐요"],
+    "body": ["TCI 기질검사 해석 · 커플·연애 상담", "2,000여 명의 마음을 들어온 이지혜 소장이", "당신의 이야기를 기다리고 있어요."],
+    "button": "프로필 링크 → 네이버 예약",
 }
 
 _font_cache = {}
@@ -76,9 +75,12 @@ def draw_art(img, kind, th, box):
     cx, cy = w * S // 2, h * S // 2
     if kind == "moon":
         r = min(w, h) * S // 3
-        d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=acc)
         off = int(r * 0.55)
-        d.ellipse((cx - r + off, cy - r - off // 3, cx + r + off, cy + r - off // 3), fill=th["bg"] + (255,))
+        mask = Image.new("L", layer.size, 0)
+        md = ImageDraw.Draw(mask)
+        md.ellipse((cx - r, cy - r, cx + r, cy + r), fill=255)
+        md.ellipse((cx - r + off, cy - r - off // 3, cx + r + off, cy + r - off // 3), fill=0)
+        layer.paste(Image.new("RGBA", layer.size, acc), (0, 0), mask)
         for sx, sy, sr in [(0.15, 0.25, 10), (0.82, 0.2, 14), (0.75, 0.78, 9), (0.22, 0.8, 12), (0.9, 0.5, 7)]:
             px, py, pr = int(w * S * sx), int(h * S * sy), sr * S // 2
             d.ellipse((px - pr, py - pr, px + pr, py + pr), fill=soft)
@@ -103,6 +105,15 @@ def draw_art(img, kind, th, box):
 
 def render_slide(slide, th, W, H, page=None, total=None, footer=True):
     img = Image.new("RGB", (W, H), th["bg"])
+    if th.get("blobs"):
+        from PIL import ImageFilter
+        layer = Image.new("RGB", (W, H), th["bg"])
+        ld = ImageDraw.Draw(layer)
+        for col, (bx, by, br) in th["blobs"]:
+            r = int(W * br)
+            cx, cy = int(W * bx), int(H * by)
+            ld.ellipse((cx - r, cy - r, cx + r, cy + r), fill=col)
+        img = layer.filter(ImageFilter.GaussianBlur(90))
     d = ImageDraw.Draw(img)
     M = 90
     max_w = W - 2 * M
@@ -153,6 +164,15 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True):
                 y += 62
             y += 22
 
+    if slide.get("button"):
+        y += 40
+        bfnt = font(SANS["Bold"], 42 if tall else 38)
+        tw = d.textlength(slide["button"], font=bfnt)
+        bh = 100 if tall else 92
+        d.rounded_rectangle((M, y, M + tw + 100, y + bh), radius=bh // 2, fill=th["accent"])
+        d.text((M + 50, y + bh // 2), slide["button"], font=bfnt, fill=(255, 255, 255), anchor="lm")
+        y += bh
+
     if footer:
         fy = H - (360 if tall else 170)
         d.line((M, fy, W - M, fy), fill=th["accent"], width=2)
@@ -193,12 +213,12 @@ def slide_text(s):
 
 
 def render_post(post, out_root):
-    th = THEMES[post.get("theme", "dark")]
+    th = THEMES[post.get("theme", "warm")]
     out = os.path.join(out_root, post["id"])
     os.makedirs(out, exist_ok=True)
     slides = list(post["slides"])
-    if post.get("theme") != "light":
-        slides.append(PROFILE)
+    booking = dict(BOOKING, **post.get("booking", {}))
+    slides.append(booking)
     total = len(slides)
     files = []
     for i, s in enumerate(slides, 1):
@@ -213,11 +233,10 @@ def render_post(post, out_root):
         p = os.path.join(out, f"frame_{i:02d}.png")
         img.save(p)
         frames.append((p, slide_text(s)))
-    end = render_slide({"type": "cta", "label": "", "title": ["저장하고", "다시 꺼내 보세요"],
-                        "body": ["매주 월~금 저녁 9시", "기질 이야기가 올라와요"]}, th, 1080, 1920)
+    end = render_slide(booking, th, 1080, 1920)
     endp = os.path.join(out, f"frame_{len(frames) + 1:02d}.png")
     end.save(endp)
-    frames.append((endp, "저장하고 다시 꺼내 보세요"))
+    frames.append((endp, slide_text(booking)))
     make_shorts(out, frames, os.path.join(out, "shorts.mp4"))
     for p, _ in frames:
         os.remove(p)
