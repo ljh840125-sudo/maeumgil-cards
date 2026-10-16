@@ -25,9 +25,13 @@ for p in d["posts"]:
     text = p["caption"] + "\n\n" + " ".join(p["hashtags"])
     cards = [B + f for f in sorted(glob.glob(f"out/{p['id']}/card_*.png"))]
     vid = B + f"out/{p['id']}/shorts.mp4"
-    rows = [("IG", "21:00", base(p["date"] + "T21:00:00", text, cards, "instagram",
+    if p.get("shorts_only"):
+        rows = [("REEL", "21:00", base(p["date"] + "T21:00:00", text, [vid], "instagram",
+                                       {"instagramData": {"type": "REEL", "showReelOnFeed": True, "isAiGenerated": True}}))]
+    else:
+        rows = [("IG", "21:00", base(p["date"] + "T21:00:00", text, cards, "instagram",
                                  {"instagramData": {"type": "POST", "isAiGenerated": True}}))]
-    if p.get("reels"):
+    if p.get("reels") and not p.get("shorts_only"):
         rows.append(("REEL", "12:30", base(p["date"] + "T12:30:00", text, [vid], "instagram",
                                            {"instagramData": {"type": "REEL", "showReelOnFeed": False, "isAiGenerated": True}})))
     yt = p["shorts_title"] + "\n\n" + p["caption"] + "\n\n" + " ".join(p["hashtags"][:5]) + " #shorts"

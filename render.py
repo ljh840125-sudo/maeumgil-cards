@@ -221,7 +221,7 @@ def render_post(post, out_root):
     slides.append(booking)
     total = len(slides)
     files = []
-    for i, s in enumerate(slides, 1):
+    for i, s in enumerate([] if post.get("shorts_only") else slides, 1):
         img = render_slide(s, th, 1080, 1350, page=i if total > 1 else None, total=total if total > 1 else None)
         p = os.path.join(out, f"card_{i:02d}.png")
         img.save(p, optimize=True)
