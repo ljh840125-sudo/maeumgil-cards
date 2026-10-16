@@ -39,6 +39,9 @@ for p in d["posts"]:
                                      {"youtubeData": {"title": p["shorts_title"][:100], "type": "short", "privacy": "public",
                                                       "tags": [h.strip("#") for h in p["hashtags"]], "category": "PEOPLE_BLOGS",
                                                       "madeForKids": False, "isAiGeneratedContent": False}})))
+    if p.get("threads"):
+        th_media = [vid] if p.get("shorts_only") else cards[:1]
+        rows.append(("TH", "21:00", base(p["date"] + "T21:00:00", p["threads"], th_media, "threads", {"threadsData": {}})))
     for kind, hm, info in rows:
         print(f"=== {p['id']} {kind} {p['date']}T{hm}:00+09:00")
         print(json.dumps(info, ensure_ascii=False))
