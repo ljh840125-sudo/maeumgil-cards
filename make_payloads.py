@@ -35,7 +35,9 @@ for p in d["posts"]:
         rows.append(("REEL", "12:30", base(p["date"] + "T12:30:00", text, [vid], "instagram",
                                            {"instagramData": {"type": "REEL", "showReelOnFeed": False, "isAiGenerated": True}})))
     yt = p["shorts_title"] + "\n\n" + p["caption"] + "\n\n" + " ".join(p["hashtags"][:5]) + " #shorts"
-    rows.append(("YT", "21:00", base(p["date"] + "T21:00:00", yt, [vid], "youtube",
+    # 릴스가 점심에 올라가는 날은 유튜브 쇼츠도 같은 시간에 올린다
+    yt_hm = "12:30" if (p.get("reels") and not p.get("shorts_only")) else "21:00"
+    rows.append(("YT", yt_hm, base(p["date"] + f"T{yt_hm}:00", yt, [vid], "youtube",
                                      {"youtubeData": {"title": p["shorts_title"][:100], "type": "short", "privacy": "public",
                                                       "tags": [h.strip("#") for h in p["hashtags"]], "category": "PEOPLE_BLOGS",
                                                       "madeForKids": False, "isAiGeneratedContent": False}})))
