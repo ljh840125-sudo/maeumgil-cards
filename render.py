@@ -19,6 +19,25 @@ THEMES = {
     # 몽글몽글 포근한 톤: 크림 살구 배경 + 코코아 글씨 + 더스티 로즈 포인트
     "warm": {"bg": (250, 241, 233), "title": (78, 60, 66), "body": (112, 96, 100), "accent": (204, 128, 118), "muted": (160, 140, 136),
              "blobs": [((246, 212, 198), (0.85, 0.12, 0.38)), ((236, 222, 242), (0.08, 0.9, 0.42)), ((252, 228, 210), (0.95, 0.75, 0.25))]},
+    # 세이지 그린: 차분한 분석 (기질 해부실)
+    "sage": {"bg": (241, 244, 236), "title": (52, 66, 58), "body": (88, 100, 92), "accent": (120, 150, 116), "muted": (140, 150, 140),
+             "blobs": [((214, 230, 206), (0.88, 0.12, 0.40)), ((246, 236, 214), (0.06, 0.90, 0.42)), ((226, 238, 222), (0.96, 0.78, 0.26))]},
+    # 로즈 라벤더: 설렘과 관계 (궁합 연구소)
+    "rose": {"bg": (249, 238, 242), "title": (84, 54, 74), "body": (118, 92, 110), "accent": (196, 106, 140), "muted": (160, 132, 150),
+             "blobs": [((244, 206, 222), (0.86, 0.10, 0.42)), ((226, 214, 244), (0.06, 0.92, 0.44)), ((250, 222, 230), (0.96, 0.80, 0.26))]},
+    # 파우더 블루 + 버터: 일상 공감 (이런 사람 주변에 있죠?, 검사 도구 도감)
+    "sky": {"bg": (238, 244, 249), "title": (46, 64, 86), "body": (84, 100, 120), "accent": (92, 136, 186), "muted": (130, 146, 166),
+            "blobs": [((208, 226, 244), (0.88, 0.12, 0.40)), ((252, 238, 206), (0.06, 0.90, 0.42)), ((222, 234, 248), (0.96, 0.80, 0.26))]},
+    # 오트밀 노트: 저장각 정리 (마인드셋 노트)
+    "note": {"bg": (246, 240, 228), "title": (44, 52, 74), "body": (78, 84, 100), "accent": (196, 118, 78), "muted": (150, 140, 124),
+             "blobs": [((238, 226, 204), (0.90, 0.10, 0.36)), ((232, 230, 222), (0.06, 0.92, 0.40))], "lines": True},
+    # 버터 옐로: 가볍게 해보는 테스트 (1분 셀프 체크)
+    "butter": {"bg": (252, 246, 228), "title": (84, 64, 40), "body": (118, 98, 72), "accent": (222, 150, 64), "muted": (166, 146, 116),
+               "blobs": [((252, 228, 176), (0.88, 0.12, 0.40)), ((248, 220, 206), (0.06, 0.90, 0.42)), ((254, 238, 200), (0.96, 0.80, 0.26))]},
+    # 밤하늘: 일요일 밤 (일요일 밤 마인드셋/처방)
+    "night": {"bg": (40, 44, 74), "title": (250, 244, 230), "body": (208, 206, 224), "accent": (236, 196, 128), "muted": (160, 160, 190),
+              "button_text": (44, 40, 60),
+              "blobs": [((70, 66, 112), (0.86, 0.12, 0.42)), ((88, 64, 104), (0.06, 0.90, 0.42)), ((56, 72, 110), (0.96, 0.78, 0.28))], "stars": True},
     "dark": {"bg": (27, 26, 46), "title": (255, 255, 255), "body": (204, 200, 222), "accent": (232, 190, 120), "muted": (150, 146, 172)},
     "light": {"bg": (246, 240, 230), "title": (40, 38, 62), "body": (88, 84, 104), "accent": (184, 136, 72), "muted": (140, 132, 120)},
 }
@@ -29,6 +48,18 @@ BOOKING = {
     "title": ["혼자 풀기 어려운 마음,", "같이 들여다봐요"],
     "body": ["TCI 기질검사 해석 · 커플·연애 상담", "2,000여 명의 마음을 들어온 이지혜 소장이", "당신의 이야기를 기다리고 있어요."],
     "button": "프로필 링크 → 네이버 예약",
+}
+
+SERIES_THEME = {
+    "기질 해부실": "sage",
+    "궁합 연구소": "rose",
+    "검사 도구 도감": "sage",
+    "이런 사람 주변에 있죠?": "sky",
+    "마인드셋 노트": "note",
+    "마음 한 장": "warm",
+    "1분 셀프 체크": "butter",
+    "일요일 밤 마인드셋": "night",
+    "일요일 밤 처방": "night",
 }
 
 _font_cache = {}
@@ -115,6 +146,21 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True):
             ld.ellipse((cx - r, cy - r, cx + r, cy + r), fill=col)
         img = layer.filter(ImageFilter.GaussianBlur(90))
     d = ImageDraw.Draw(img)
+    if th.get("lines"):
+        for ly in range(150, H - 120, 66):
+            d.line((60, ly, W - 60, ly), fill=tuple(max(0, c - 14) for c in th["bg"]), width=1)
+    if th.get("stars"):
+        import random
+        rnd = random.Random(W * 7 + H)
+        placed = 0
+        while placed < 26:
+            sx, sy, sr = rnd.randint(0, W), rnd.randint(0, H), rnd.choice([1, 1, 2, 2, 3])
+            if 70 < sx < W - 150 and 170 < sy < H * 0.72:  # 글자 영역은 피함
+                continue
+            if sy > H - (380 if H > 1500 else 190):  # 하단 표기 영역도 피함
+                continue
+            placed += 1
+            d.ellipse((sx - sr, sy - sr, sx + sr, sy + sr), fill=(250, 244, 220))
     M = 90
     max_w = W - 2 * M
     tall = H > 1500
@@ -170,7 +216,7 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True):
         tw = d.textlength(slide["button"], font=bfnt)
         bh = 100 if tall else 92
         d.rounded_rectangle((M, y, M + tw + 100, y + bh), radius=bh // 2, fill=th["accent"])
-        d.text((M + 50, y + bh // 2), slide["button"], font=bfnt, fill=(255, 255, 255), anchor="lm")
+        d.text((M + 50, y + bh // 2), slide["button"], font=bfnt, fill=th.get("button_text", (255, 255, 255)), anchor="lm")
         y += bh
 
     if footer:
@@ -213,7 +259,7 @@ def slide_text(s):
 
 
 def render_post(post, out_root):
-    th = THEMES[post.get("theme", "warm")]
+    th = THEMES[post.get("theme") or SERIES_THEME.get(post.get("series"), "warm")]
     out = os.path.join(out_root, post["id"])
     os.makedirs(out, exist_ok=True)
     slides = list(post["slides"])
