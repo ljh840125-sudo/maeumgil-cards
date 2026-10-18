@@ -210,6 +210,15 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True):
                 y += 62
             y += 22
 
+    if slide.get("outline_button"):
+        y += 40
+        bfnt = font(SANS["SemiBold"], 38 if tall else 34)
+        tw = d.textlength(slide["outline_button"], font=bfnt)
+        bh = 92 if tall else 84
+        d.rounded_rectangle((M, y, M + tw + 100, y + bh), radius=bh // 2, outline=th["accent"], width=3)
+        d.text((M + 50, y + bh // 2), slide["outline_button"], font=bfnt, fill=th["accent"], anchor="lm")
+        y += bh
+
     if slide.get("button"):
         y += 40
         bfnt = font(SANS["Bold"], 42 if tall else 38)
@@ -263,6 +272,12 @@ def render_post(post, out_root):
     out = os.path.join(out_root, post["id"])
     os.makedirs(out, exist_ok=True)
     slides = list(post["slides"])
+    nxt = None
+    if post.get("next"):
+        n = post["next"]
+        nxt = {"type": "next", "label": n.get("label", "다음 편 예고"), "title": n["title"],
+               "body": n.get("body", []), "outline_button": n.get("button", "팔로우하고 다음 편 받기"), "shorts": True}
+        slides.append(nxt)
     booking = dict(BOOKING, **post.get("booking", {}))
     slides.append(booking)
     total = len(slides)
@@ -274,7 +289,7 @@ def render_post(post, out_root):
         files.append(p)
 
     frames = []
-    for i, s in enumerate([s for s in post["slides"] if s.get("shorts")], 1):
+    for i, s in enumerate([s for s in post["slides"] if s.get("shorts")] + ([nxt] if nxt else []), 1):
         img = render_slide(s, th, 1080, 1920)
         p = os.path.join(out, f"frame_{i:02d}.png")
         img.save(p)
