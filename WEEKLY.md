@@ -145,3 +145,17 @@
 14. git commit & push (main). 커밋 SHA 확인.
 15. `python3 make_payloads.py content/<파일>.json <SHA>` 출력의 각 항목을 Metricool createScheduledPost로 예약 (blogId 7180509, date는 === 줄의 시간).
 16. 결과 요약: 5개 주제, 예약 개수, 실패 항목.
+17. 블로그 원고: 카드뉴스(=shorts_only 아닌 글)마다 `blog/posts/<post id>.txt` 작성 → `python3 blog/build.py main` → `blog/html/<id>.html` 내용을 Google Drive create_file(textContent, contentMimeType text/html, parentId `1RfU_rBohR033gjbJP-3yfZzNgBoZR8Eo`, 제목 "MM/DD 짧은 제목")로 업로드. git push 뒤에 올려야 이미지가 보임. Drive 커넥터가 없으면 건너뛰고 요약에 적기.
+
+## 블로그 원고 규칙 (네이버)
+- 형식: 머리말 `title:` `keywords:`(인기 검색어 2~3개) `tags:`(10개) → `===` → 본문. `[3]` = card_03 자리, `## 소제목`, `- 목록`, `Q.`/`A.` 질문.
+- 본문 1,600~1,800자 (`python3 blog/count.py`로 확인). 카드 캡션 복붙 금지, 새로 풀어 쓴 설명글.
+- 제목: 핵심 키워드를 앞쪽에 + 궁금증/공감 후킹. 키워드는 제목·첫 문단·소제목에 자연스럽게 2~3회씩.
+- 첫 문단에 바로 '답' (AI 브리핑이 요약해 가는 자리). 끝에 '자주 묻는 질문' 1~2개.
+- 경험 단서 한두 줄 ('상담하다 보면…', 몸 증상은 '임상병리사로서' 진료 권유). 지어낸 사례·수치 금지.
+- 예시 80% 가족·연애·아이·습관(게임·술), 20% 직장.
+- 마무리(상담·전문치료 안내, 예약 칸, 글쓴이 소개, 교보 링크)는 build.py가 자동으로 붙임. MMPI 절대 넣지 않기.
+- 예약 칸·booking/next 카드(card 마지막 1~2장)는 본문에 넣지 않기.
+
+## 쇼츠 속도
+- render.py가 글자 수로 장면 시간을 정함: 공백 뺀 글자 수/10 + 1초 (2~9초), 첫 장면(후킹)은 최대 3초, 마지막 예약 장면은 3.5초 이상. 글이 많은 장면을 더 오래 보여주려고 문구를 억지로 늘리지 말 것.

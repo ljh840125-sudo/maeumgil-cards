@@ -254,9 +254,16 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True, band=None)
 
 def make_shorts(frames_dir, frames, out_path):
     """장면마다 글자 수에 맞춰 시간을 주고 페이드로 연결."""
+    # 글 적은 도입은 빠르게, 글 많은 장면은 읽을 시간을 넉넉히 (공백 제외 글자 수 기준)
     durs = []
-    for f, txt in frames:
-        durs.append(max(3.5, min(6.5, 2.0 + len(txt) / 18)))
+    for i, (f, txt) in enumerate(frames):
+        n = len(txt.replace(" ", ""))
+        t = max(2.0, min(9.0, 1.0 + n / 10))
+        if i == 0:
+            t = min(t, 3.0)          # 첫 장면(후킹)은 짧게
+        if i == len(frames) - 1:
+            t = max(t, 3.5)          # 마지막 예약 안내는 충분히
+        durs.append(t)
     args = ["ffmpeg", "-y", "-loglevel", "error"]
     for (f, _), t in zip(frames, durs):
         args += ["-loop", "1", "-t", f"{t:.2f}", "-i", f]
