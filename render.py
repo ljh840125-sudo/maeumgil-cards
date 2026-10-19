@@ -38,6 +38,10 @@ THEMES = {
     "night": {"bg": (40, 44, 74), "title": (250, 244, 230), "body": (208, 206, 224), "accent": (236, 196, 128), "muted": (160, 160, 190),
               "button_text": (44, 40, 60),
               "blobs": [((70, 66, 112), (0.86, 0.12, 0.42)), ((88, 64, 104), (0.06, 0.90, 0.42)), ((56, 72, 110), (0.96, 0.78, 0.28))], "stars": True},
+    # 볼드: 현실적이고 강한 후킹용 (강한 단어는 이 테마에서만)
+    "bold": {"bg": (24, 24, 28), "title": (255, 255, 255), "body": (214, 214, 220), "accent": (255, 96, 86), "muted": (150, 150, 158),
+             "title_font": "sans", "title_scale": 1.12,
+             "blobs": [((40, 36, 44), (0.9, 0.1, 0.45)), ((30, 30, 38), (0.1, 0.9, 0.45))]},
     "dark": {"bg": (27, 26, 46), "title": (255, 255, 255), "body": (204, 200, 222), "accent": (232, 190, 120), "muted": (150, 146, 172)},
     "light": {"bg": (246, 240, 230), "title": (40, 38, 62), "body": (88, 84, 104), "accent": (184, 136, 72), "muted": (140, 132, 120)},
 }
@@ -184,7 +188,8 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True, band=None)
         title_size = 70
     if kind == "profile":
         title_size = 80
-    tf = font(TITLE, title_size)
+    title_size = int(title_size * th.get("title_scale", 1.0))
+    tf = font(SANS["ExtraBold"] if th.get("title_font") == "sans" else TITLE, title_size)
     for line in slide.get("title", []):
         for wl in wrap(d, line, tf, max_w):
             d.text((M, y), wl, font=tf, fill=th["title"])
