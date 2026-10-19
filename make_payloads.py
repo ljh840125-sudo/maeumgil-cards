@@ -12,8 +12,8 @@ B = f"https://raw.githubusercontent.com/ljh840125-sudo/maeumgil-cards/{sha}/"
 d = json.load(open(src, encoding="utf-8"))
 
 
-def base(dt, text, media, prov, extra):
-    x = {"autoPublish": True, "draft": False, "descendants": [], "firstCommentText": "", "hasNotReadNotes": False,
+def base(dt, text, media, prov, extra, first_comment=""):
+    x = {"autoPublish": True, "draft": False, "descendants": [], "firstCommentText": first_comment, "hasNotReadNotes": False,
          "media": media, "mediaAltText": [], "providers": [{"network": prov}],
          "publicationDate": {"dateTime": dt, "timezone": "Asia/Seoul"}, "shortener": False,
          "smartLinkData": {"ids": []}, "text": text}
@@ -30,7 +30,7 @@ for p in d["posts"]:
                                        {"instagramData": {"type": "REEL", "showReelOnFeed": True, "isAiGenerated": True}}))]
     else:
         rows = [("IG", "21:00", base(p["date"] + "T21:00:00", text, cards, "instagram",
-                                 {"instagramData": {"type": "POST", "isAiGenerated": True}}))]
+                                 {"instagramData": {"type": "POST", "isAiGenerated": True}}, p.get("first_comment", "")))]
     if p.get("reels") and not p.get("shorts_only"):
         rows.append(("REEL", "12:30", base(p["date"] + "T12:30:00", text, [vid], "instagram",
                                            {"instagramData": {"type": "REEL", "showReelOnFeed": False, "isAiGenerated": True}})))
