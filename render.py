@@ -134,7 +134,7 @@ def draw_art(img, kind, th, box):
     img.paste(layer, (x0, y0), layer)
 
 
-def render_slide(slide, th, W, H, page=None, total=None, footer=True):
+def render_slide(slide, th, W, H, page=None, total=None, footer=True, band=None):
     img = Image.new("RGB", (W, H), th["bg"])
     if th.get("blobs"):
         from PIL import ImageFilter
@@ -228,6 +228,14 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True):
         d.text((M + 50, y + bh // 2), slide["button"], font=bfnt, fill=th.get("button_text", (255, 255, 255)), anchor="lm")
         y += bh
 
+    if band:
+        # 하단 링크 띠: 예) "▶ 애착유형 3분 테스트 · 프로필 링크"
+        bfnt = font(SANS["SemiBold"], 32 if H > 1500 else 28)
+        bh = 76 if H > 1500 else 66
+        by = H - (360 if H > 1500 else 170) - bh - 24
+        d.rounded_rectangle((M, by, W - M, by + bh), radius=bh // 2, fill=th["accent"])
+        d.text((W // 2, by + bh // 2), band, font=bfnt, fill=th.get("button_text", (255, 255, 255)), anchor="mm")
+
     if footer:
         fy = H - (360 if tall else 170)
         d.line((M, fy, W - M, fy), fill=th["accent"], width=2)
@@ -283,7 +291,8 @@ def render_post(post, out_root):
     total = len(slides)
     files = []
     for i, s in enumerate([] if post.get("shorts_only") else slides, 1):
-        img = render_slide(s, th, 1080, 1350, page=i if total > 1 else None, total=total if total > 1 else None)
+        img = render_slide(s, th, 1080, 1350, page=i if total > 1 else None, total=total if total > 1 else None,
+                           band=post.get("band") if s.get("type") != "booking" else None)
         p = os.path.join(out, f"card_{i:02d}.png")
         img.save(p, optimize=True)
         files.append(p)
