@@ -65,9 +65,11 @@ STY = {
 }
 
 
-CSS = ("<style>p,li{font-size:12pt;line-height:1.8;margin:0}"
+CSS = ("<style>body,p,li,span{font-family:'Nanum Gothic';font-weight:400;color:#333333}"
+       "p,li{font-size:12pt;line-height:1.8;margin:0}"
        "h1{font-size:16pt;line-height:1.5}h2{font-size:14pt;line-height:1.6;margin-top:26pt}"
-       "h3{font-size:13pt;line-height:1.6;margin-top:20pt}</style>")
+       "h3{font-size:13pt;line-height:1.6;margin-top:20pt}"
+       "h1,h2,h3{font-family:'Nanum Gothic';color:#222222}</style>")
 
 
 def style(doc):
@@ -174,7 +176,7 @@ def build(path):
         elif not l.strip():
             close_list()
         elif l.startswith("Q. "):
-            close_list(); out.append(para(l, bold=True))
+            close_list(); out.append(para(l))
         else:
             close_list(); out.append(para(l) + "\n" + BLANK)
     close_list()
