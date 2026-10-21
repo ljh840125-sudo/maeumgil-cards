@@ -42,7 +42,7 @@ STY = {
 }
 
 
-CSS = ("<style>p,li{font-size:12pt;line-height:1.8;margin:0 0 12pt 0}"
+CSS = ("<style>p,li{font-size:12pt;line-height:1.8;margin:0}"
        "h1{font-size:16pt;line-height:1.5}h2{font-size:14pt;line-height:1.6;margin-top:26pt}"
        "h3{font-size:13pt;line-height:1.6;margin-top:20pt}</style>")
 
@@ -50,6 +50,54 @@ CSS = ("<style>p,li{font-size:12pt;line-height:1.8;margin:0 0 12pt 0}"
 def style(doc):
     # 머리 <style> 하나로 크기 지정 (구글 문서 가져오기에서 적용됨)
     return doc.replace('<meta charset="utf-8"></head>', '<meta charset="utf-8">' + CSS + '</head>', 1)
+
+
+BLANK = "<p>&nbsp;</p>"
+CONN = ["는데 ", "지만 ", "면서 ", "니까 ", "려면 ", "다면 ", "라면 ", "이라 ", "해서 ", "하고 "]
+
+
+def sentences(t):
+    # 문장 끝(. ? !) 뒤 공백에서 나눔. 따옴표 닫힘까지 포함
+    parts, last = [], 0
+    for m in re.finditer(r"[.?!][\"\u201d\u2019']?\s+", t):
+        parts.append(t[last:m.end()].strip()); last = m.end()
+    parts.append(t[last:].strip())
+    return [x for x in parts if x]
+
+
+def wrap(s, limit=32):
+    # 긴 문장은 쉼표 → 연결어미 순으로 가운데에 가까운 곳에서 한 번 끊기
+    if len(s) <= limit:
+        return [s]
+    mid = len(s) / 2
+    cands = [m.end() for m in re.finditer(r", ", s)]
+    if not cands:
+        for c in CONN:
+            cands += [m.end() for m in re.finditer(re.escape(c), s)]
+    cands = [c for c in cands if 8 <= c <= len(s) - 8]
+    if not cands and len(s) > 40:
+        for c in ["은 ", "는 ", "을 ", "를 ", "에서 ", "에게 ", "며 ", "고 ", "가 ", "이 "]:
+            cands += [m.end() for m in re.finditer(re.escape(c), s)]
+        cands = [c for c in cands if 12 <= c <= len(s) - 12]
+    if not cands:
+        return [s]
+    cut = min(cands, key=lambda c: abs(c - mid))
+    a, b = s[:cut].rstrip(), s[cut:].lstrip()
+    return (wrap(a, limit) if len(a) > 40 else [a]) + (wrap(b, limit) if len(b) > 40 else [b])
+
+
+def para(t, bold=False):
+    # 문단 → 한 문장 한 줄(긴 문장은 두 줄), 문단 끝에 빈 줄
+    out, pre = [], ""
+    if t[:3] in ("Q. ", "A. "):
+        pre, t = t[:3], t[3:]
+    sens = sentences(t)
+    sens[0] = pre + sens[0]
+    for sen in sens:
+        for line in wrap(sen):
+            x = inline(line)
+            out.append(f"<p><b>{x}</b></p>" if bold else f"<p>{x}</p>")
+    return "\n".join(out)
 
 
 def inline(t):
@@ -66,7 +114,7 @@ def build(path):
     def close_list():
         nonlocal lst
         if lst:
-            out.append("</ul>")
+            out.append("</ul>" + BLANK)
             lst = False
 
     for raw in body.strip().splitlines():
@@ -78,11 +126,11 @@ def build(path):
             f = f"{pid}/card_{n:02d}.png"
             assert os.path.exists(os.path.join(ROOT, "out", f)), f
             out.append(f'<p style="color:#9a7b4f;font-size:10pt">📷 사진 {n}번 (card_{n:02d}.png)</p>'
-                       f'<p><img src="{IMG}{f}" width="420"></p>')
+                       f'<p><img src="{IMG}{f}" width="420"></p>' + BLANK)
         elif l.startswith("### "):
-            close_list(); out.append(f"<h3>{inline(l[4:])}</h3>")
+            close_list(); out.append(f"<h3>{inline(l[4:])}</h3>" + BLANK)
         elif l.startswith("## "):
-            close_list(); out.append(f"<h2>{inline(l[3:])}</h2>")
+            close_list(); out.append(BLANK + f"<h2>{inline(l[3:])}</h2>" + BLANK)
         elif l.startswith("- "):
             if not lst:
                 out.append("<ul>"); lst = True
@@ -92,9 +140,9 @@ def build(path):
         elif not l.strip():
             close_list()
         elif l.startswith("Q. "):
-            close_list(); out.append(f"<p><b>{inline(l)}</b></p>")
+            close_list(); out.append(para(l, bold=True))
         else:
-            close_list(); out.append(f"<p>{inline(l)}</p>")
+            close_list(); out.append(para(l) + "\n" + BLANK)
     close_list()
 
     guide = (f'<table border="1" cellpadding="8" style="border-collapse:collapse;background:#f4efe6;width:100%">'
@@ -107,6 +155,7 @@ def build(path):
     tags = f'<p style="color:#5b7a6a">{html.escape(meta["tags"])}</p>'
     doc = (f'<html><head><meta charset="utf-8"></head><body>{guide}'
            f'<h1>{inline(meta["title"])}</h1>' + "\n".join(out) + CLOSING + tags + "</body></html>")
+    doc = re.sub(r"(<p>&nbsp;</p>\s*){2,}", BLANK + "\n", doc)
     doc = style(doc)
     os.makedirs(os.path.join(ROOT, "blog", "html"), exist_ok=True)
     dst = os.path.join(ROOT, "blog", "html", pid + ".html")
