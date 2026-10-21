@@ -60,7 +60,10 @@ def sentences(t):
     # 문장 끝(. ? !) 뒤 공백에서 나눔. 따옴표 닫힘까지 포함
     parts, last = [], 0
     for m in re.finditer(r"[.?!][\"\u201d\u2019']?\s+", t):
-        parts.append(t[last:m.end()].strip()); last = m.end()
+        seg = t[last:m.end()]
+        if seg.count('"') % 2:
+            continue  # 따옴표 안에서는 끊지 않기
+        parts.append(seg.strip()); last = m.end()
     parts.append(t[last:].strip())
     return [x for x in parts if x]
 
