@@ -39,7 +39,7 @@ THEMES = {
               "button_text": (44, 40, 60),
               "blobs": [((70, 66, 112), (0.86, 0.12, 0.42)), ((88, 64, 104), (0.06, 0.90, 0.42)), ((56, 72, 110), (0.96, 0.78, 0.28))], "stars": True},
     # 볼드: 현실적이고 강한 후킹용 (강한 단어는 이 테마에서만)
-    "bold": {"bg": (24, 24, 28), "title": (255, 255, 255), "body": (214, 214, 220), "accent": (255, 96, 86), "muted": (150, 150, 158),
+    "bold": {"bg": (24, 24, 28), "title": (255, 255, 255), "body": (214, 214, 220), "accent": (255, 96, 86), "muted": (150, 150, 158), "hl": (255, 216, 64),
              "title_font": "sans", "title_scale": 1.12,
              "blobs": [((40, 36, 44), (0.9, 0.1, 0.45)), ((30, 30, 38), (0.1, 0.9, 0.45))]},
     "dark": {"bg": (27, 26, 46), "title": (255, 255, 255), "body": (204, 200, 222), "accent": (232, 190, 120), "muted": (150, 146, 172)},
@@ -189,11 +189,24 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True, band=None)
     if kind == "profile":
         title_size = 80
     title_size = int(title_size * th.get("title_scale", 1.0))
-    tf = font(SANS["ExtraBold"] if th.get("title_font") == "sans" else TITLE, title_size)
+    if kind == "hook":
+        # 첫 장 후킹: 배경에 큰 글자, 제목은 아주 크게, 아래쪽에 배치
+        if slide.get("bigmark"):
+            bm = font(SANS["ExtraBold"], int(W * 0.42))
+            d.text((W - 40, top + 40), slide["bigmark"], font=bm, fill=tuple(min(255, c + 16) for c in th["bg"]), anchor="ra")
+        title_size = slide.get("size", 132 if tall else 122)
+        n = sum(len(wrap(d, l.lstrip("*"), font(SANS["Black"] if "Black" in SANS else SANS["ExtraBold"], title_size), max_w)) for l in slide.get("title", []))
+        y = H - (520 if tall else 300) - n * int(title_size * 1.22) - (90 if slide.get("sub") else 0)
+        if slide.get("kicker"):
+            d.text((M, y - 90), slide["kicker"], font=font(SANS["Bold"] if "Bold" in SANS else SANS["SemiBold"], 46 if tall else 42), fill=th["accent"])
+    tf = font(SANS["ExtraBold"] if (th.get("title_font") == "sans" or kind == "hook") else TITLE, title_size)
     for line in slide.get("title", []):
+        col = th["title"]
+        if line.startswith("*"):
+            line, col = line[1:], th.get("hl", th["accent"])
         for wl in wrap(d, line, tf, max_w):
-            d.text((M, y), wl, font=tf, fill=th["title"])
-            y += int(title_size * 1.42)
+            d.text((M, y), wl, font=tf, fill=col)
+            y += int(title_size * (1.22 if kind == "hook" else 1.42))
     y += 50
 
     bf = font(SANS["Regular"], 44 if tall else 40)
