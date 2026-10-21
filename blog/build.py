@@ -31,7 +31,7 @@ CLOSING = """<hr>
 
 
 # 네이버에 붙였을 때 크기: 네이버 숫자 ≈ 구글문서 pt × 1.33
-# 본문 14pt(네이버 19), 소제목 18pt(네이버 24), 제목 21pt(네이버 28), 줄간격 넉넉하게
+# 본문 12pt(네이버 16), 소제목 14pt(네이버 19), 제목 16pt(네이버 21)
 BODY = "font-size:14pt;line-height:1.9;margin:0 0 14pt 0"
 STY = {
     "<h1>": '<h1 style="font-size:21pt;line-height:1.5;margin:0 0 20pt 0">',
@@ -42,9 +42,9 @@ STY = {
 }
 
 
-CSS = ("<style>p,li{font-size:14pt;line-height:1.9;margin:0 0 14pt 0}"
-       "h1{font-size:21pt;line-height:1.5}h2{font-size:18pt;line-height:1.6;margin-top:30pt}"
-       "h3{font-size:15pt;line-height:1.6;margin-top:22pt}</style>")
+CSS = ("<style>p,li{font-size:12pt;line-height:1.8;margin:0 0 12pt 0}"
+       "h1{font-size:16pt;line-height:1.5}h2{font-size:14pt;line-height:1.6;margin-top:26pt}"
+       "h3{font-size:13pt;line-height:1.6;margin-top:20pt}</style>")
 
 
 def style(doc):
