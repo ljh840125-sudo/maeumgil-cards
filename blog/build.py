@@ -36,7 +36,8 @@ CLOSING = """<hr>
 <p>언제든 편하게 상담을 요청해주세요.</p>
 <p>당신의 마음을 듣겠습니다.</p>
 <p>&nbsp;</p>
-<p>👉 <b>마음길연구소 상담 예약</b>: <span style="background:#fff3b0">[여기에 네이버 예약 링크 붙여넣기]</span></p>
+<p>👉 <b>마음길연구소 상담 예약</b></p>
+<p><a href="https://naver.me/51u8T8Wh">https://naver.me/51u8T8Wh</a></p>
 <hr>
 <p><b>글쓴이 이지혜 작가</b></p>
 <p>상담대학원 석사 과정중, 중독상담전공.</p>
@@ -186,8 +187,7 @@ def build(path):
              f'· 제목: 아래 제목을 그대로 복사<br>'
              f'· 핵심 키워드: {html.escape(meta["keywords"])}<br>'
              f'· 사진: 📷 표시 자리에 카드 이미지를 블로그에서 직접 올리기 (첫 사진 = 대표 이미지)<br>'
-             f'· 태그: 맨 아래 태그 10개를 블로그 태그 칸에 입력<br>'
-             f'· 예약 링크: 노란 칸에 네이버 예약 링크 붙여넣기</td></tr></table>')
+             f'· 태그: 맨 아래 태그 10개를 블로그 태그 칸에 입력</td></tr></table>')
     tags = f'<p style="color:#5b7a6a">{html.escape(meta["tags"])}</p>'
     doc = (f'<html><head><meta charset="utf-8"></head><body>{guide}'
            f'<h1>{inline(meta["title"])}</h1>' + "\n".join(out) + CLOSING + tags + "</body></html>")
