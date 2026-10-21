@@ -16,17 +16,40 @@ IMG = f"https://raw.githubusercontent.com/ljh840125-sudo/maeumgil-cards/{ref}/ou
 
 CLOSING = """<hr>
 <h3>심리상담과 전문치료, 두 가지 모두 중요합니다</h3>
-<p>저는 심리상담을 공부하고, 직접 상담을 받기도 하며, 많은 분들을 상담해드리고 있습니다.</p>
-<p>하지만 불안, 우울, 슬픔, 눈물, 분노, 불면증이 심각하다면 반드시 병원을 방문하셔서 약물치료와 함께 전문적인 도움을 받으시길 권합니다.</p>
-<p>저 역시 사람입니다. 불안이 몰려오거나 슬픔과 분노로 일상이 무너질 것 같을 때, 병원에 가서 진료를 받고 약을 복용하며 버텨냈습니다.</p>
-<p><b>병원에 가는 것을 부끄러워하지 마세요.</b> 그것은 용기 있는 선택이고, 자신을 돌보는 책임감 있는 행동입니다.</p>
-<p>누군가와 이야기가 필요하시다면, 언제든 편하게 상담을 요청해주세요. 당신의 마음을 듣겠습니다.</p>
+<p>저는 심리상담을 공부하고,</p>
+<p>직접 상담을 받기도 하며,</p>
+<p>많은 분들을 상담해드리고 있습니다.</p>
+<p>&nbsp;</p>
+<p>하지만 불안, 우울, 슬픔, 눈물, 분노, 불면증이 심각하다면</p>
+<p>반드시 병원을 방문하셔서</p>
+<p>약물치료와 함께 전문적인 도움을 받으시길 권합니다.</p>
+<p>&nbsp;</p>
+<p>저 역시 사람입니다.</p>
+<p>불안이 몰려오거나 슬픔과 분노로 일상이 무너질 것 같을 때,</p>
+<p>병원에 가서 진료를 받고 약을 복용하며 버텨냈습니다.</p>
+<p>&nbsp;</p>
+<p><b>병원에 가는 것을 부끄러워하지 마세요.</b></p>
+<p>그것은 용기 있는 선택이고,</p>
+<p>자신을 돌보는 책임감 있는 행동입니다.</p>
+<p>&nbsp;</p>
+<p>누군가와 이야기가 필요하시다면,</p>
+<p>언제든 편하게 상담을 요청해주세요.</p>
+<p>당신의 마음을 듣겠습니다.</p>
+<p>&nbsp;</p>
 <p>👉 <b>마음길연구소 상담 예약</b>: <span style="background:#fff3b0">[여기에 네이버 예약 링크 붙여넣기]</span></p>
 <hr>
-<p><b>글쓴이 이지혜 작가</b><br>
-상담대학원 석사 과정중, 중독상담전공. 2000여 명의 직장인, 커플, 개인을 상담하며 현장에서 그들의 마음을 들었습니다. TCI·교류분석·NLP·애착유형 등 다양한 심리평가 도구로 정확한 진단을 하고, 당신의 마음을 듣고, 실존상담으로 답을 찾아드립니다.<br>
-마음길연구소 소장 · 한국심리분석협회<br>
-📖 공저 『나를 알고 나를 담는다』 <a href="https://product.kyobobook.co.kr/detail/S000001718199">https://product.kyobobook.co.kr/detail/S000001718199</a></p>
+<p><b>글쓴이 이지혜 작가</b></p>
+<p>상담대학원 석사 과정중, 중독상담전공.</p>
+<p>2000여 명의 직장인, 커플, 개인을 상담하며</p>
+<p>현장에서 그들의 마음을 들었습니다.</p>
+<p>TCI·교류분석·NLP·애착유형 등 다양한 심리평가 도구로</p>
+<p>정확한 진단을 하고, 당신의 마음을 듣고,</p>
+<p>실존상담으로 답을 찾아드립니다.</p>
+<p>&nbsp;</p>
+<p>마음길연구소 소장 · 한국심리분석협회</p>
+<p>📖 공저 『나를 알고 나를 담는다』</p>
+<p><a href="https://product.kyobobook.co.kr/detail/S000001718199">https://product.kyobobook.co.kr/detail/S000001718199</a></p>
+<p>&nbsp;</p>
 """
 
 
@@ -53,7 +76,7 @@ def style(doc):
 
 
 BLANK = "<p>&nbsp;</p>"
-CONN = ["는데 ", "지만 ", "면서 ", "니까 ", "려면 ", "다면 ", "라면 ", "이라 ", "해서 ", "하고 "]
+CONN = ["는데 ", "지만 ", "면서 ", "니까 ", "려면 ", "다면 ", "라면 ", "이라 ", "해서 "]
 
 
 def sentences(t):
@@ -73,15 +96,16 @@ def wrap(s, limit=32):
     if len(s) <= limit:
         return [s]
     mid = len(s) / 2
-    cands = [m.end() for m in re.finditer(r", ", s)]
+    # 쉼표 앞 단어가 짧으면(나열: "불안, 우울,") 끊지 않기
+    cands = [m.end() for m in re.finditer(r", ", s) if len(s[:m.start()].split()[-1]) > 3]
     if not cands:
         for c in CONN:
             cands += [m.end() for m in re.finditer(re.escape(c), s)]
-    cands = [c for c in cands if 8 <= c <= len(s) - 8]
+    cands = [c for c in cands if 8 <= c <= len(s) - 8 and s[:c].count('"') % 2 == 0]
     if not cands and len(s) > 40:
-        for c in ["은 ", "는 ", "을 ", "를 ", "에서 ", "에게 ", "며 ", "고 ", "가 ", "이 "]:
+        for c in ["은 ", "을 ", "를 ", "에서 ", "에게 ", "며 ", "도 ", "로 ", "면 ", "때 ", "게 "]:
             cands += [m.end() for m in re.finditer(re.escape(c), s)]
-        cands = [c for c in cands if 12 <= c <= len(s) - 12]
+        cands = [c for c in cands if 12 <= c <= len(s) - 12 and s[:c].count('"') % 2 == 0]
     if not cands:
         return [s]
     cut = min(cands, key=lambda c: abs(c - mid))
@@ -97,7 +121,8 @@ def para(t, bold=False):
     sens = sentences(t)
     sens[0] = pre + sens[0]
     for sen in sens:
-        for line in wrap(sen):
+        lines = [x.strip() for x in sen.split(" / ")] if " / " in sen else wrap(sen)  # " / " = 직접 줄바꿈
+        for line in lines:
             x = inline(line)
             out.append(f"<p><b>{x}</b></p>" if bold else f"<p>{x}</p>")
     return "\n".join(out)
@@ -106,6 +131,16 @@ def para(t, bold=False):
 def inline(t):
     t = html.escape(t, quote=False)
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+
+
+def closing():
+    # 마무리 문단도 본문처럼 한 문장 한 줄로
+    def fix(m):
+        inner = m.group(1)
+        if "<" in inner:
+            return m.group(0)
+        return para(html.unescape(inner)) + "\n" + BLANK
+    return re.sub(r"<p>([^\n]*?)</p>", fix, CLOSING)
 
 
 def build(path):
