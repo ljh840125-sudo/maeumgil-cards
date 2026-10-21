@@ -76,7 +76,7 @@ def style(doc):
 
 
 BLANK = "<p>&nbsp;</p>"
-CONN = ["는데 ", "지만 ", "면서 ", "니까 ", "려면 ", "다면 ", "라면 ", "이라 ", "해서 "]
+CONN = ["는데 ", "지만 ", "면서 ", "니까 ", "려면 ", "다면 ", "라면 "]
 
 
 def sentences(t):
@@ -97,15 +97,11 @@ def wrap(s, limit=32):
         return [s]
     mid = len(s) / 2
     # 쉼표 앞 단어가 짧으면(나열: "불안, 우울,") 끊지 않기
-    cands = [m.end() for m in re.finditer(r", ", s) if len(s[:m.start()].split()[-1]) > 3]
+    cands = [m.end() for m in re.finditer(r", ", s) if len(w := s[:m.start()].split()[-1]) > 3 or w.endswith(("만", "데", "고", "면", "서", "며", "니", "요", "고요"))]
     if not cands:
         for c in CONN:
             cands += [m.end() for m in re.finditer(re.escape(c), s)]
     cands = [c for c in cands if 8 <= c <= len(s) - 8 and s[:c].count('"') % 2 == 0]
-    if not cands and len(s) > 40:
-        for c in ["은 ", "을 ", "를 ", "에서 ", "에게 ", "며 ", "도 ", "로 ", "면 ", "때 ", "게 "]:
-            cands += [m.end() for m in re.finditer(re.escape(c), s)]
-        cands = [c for c in cands if 12 <= c <= len(s) - 12 and s[:c].count('"') % 2 == 0]
     if not cands:
         return [s]
     cut = min(cands, key=lambda c: abs(c - mid))
