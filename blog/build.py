@@ -42,10 +42,14 @@ STY = {
 }
 
 
+CSS = ("<style>p,li{font-size:14pt;line-height:1.9;margin:0 0 14pt 0}"
+       "h1{font-size:21pt;line-height:1.5}h2{font-size:18pt;line-height:1.6;margin-top:30pt}"
+       "h3{font-size:15pt;line-height:1.6;margin-top:22pt}</style>")
+
+
 def style(doc):
-    for k, v in STY.items():
-        doc = doc.replace(k, v)
-    return doc
+    # 머리 <style> 하나로 크기 지정 (구글 문서 가져오기에서 적용됨)
+    return doc.replace('<meta charset="utf-8"></head>', '<meta charset="utf-8">' + CSS + '</head>', 1)
 
 
 def inline(t):
