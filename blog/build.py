@@ -30,6 +30,24 @@ CLOSING = """<hr>
 """
 
 
+# 네이버에 붙였을 때 크기: 네이버 숫자 ≈ 구글문서 pt × 1.33
+# 본문 14pt(네이버 19), 소제목 18pt(네이버 24), 제목 21pt(네이버 28), 줄간격 넉넉하게
+BODY = "font-size:14pt;line-height:1.9;margin:0 0 14pt 0"
+STY = {
+    "<h1>": '<h1 style="font-size:21pt;line-height:1.5;margin:0 0 20pt 0">',
+    "<h2>": '<h2 style="font-size:18pt;line-height:1.6;margin:30pt 0 12pt 0">',
+    "<h3>": '<h3 style="font-size:15pt;line-height:1.6;margin:22pt 0 10pt 0">',
+    "<li>": f'<li style="{BODY};margin:0 0 8pt 0">',
+    "<p>": f'<p style="{BODY}">',
+}
+
+
+def style(doc):
+    for k, v in STY.items():
+        doc = doc.replace(k, v)
+    return doc
+
+
 def inline(t):
     t = html.escape(t, quote=False)
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
@@ -85,6 +103,7 @@ def build(path):
     tags = f'<p style="color:#5b7a6a">{html.escape(meta["tags"])}</p>'
     doc = (f'<html><head><meta charset="utf-8"></head><body>{guide}'
            f'<h1>{inline(meta["title"])}</h1>' + "\n".join(out) + CLOSING + tags + "</body></html>")
+    doc = style(doc)
     os.makedirs(os.path.join(ROOT, "blog", "html"), exist_ok=True)
     dst = os.path.join(ROOT, "blog", "html", pid + ".html")
     open(dst, "w", encoding="utf-8").write(doc)
