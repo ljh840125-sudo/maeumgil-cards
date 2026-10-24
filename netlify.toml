@@ -1,0 +1,15 @@
+# 블로그 공방 앱 (app/ 폴더만 넷리파이에 올라감)
+[build]
+  base = "app"
+  publish = "."
+  functions = "netlify/functions"
+  # app/ 폴더가 바뀌지 않은 push(주간 카드뉴스 등)는 다시 빌드하지 않음
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

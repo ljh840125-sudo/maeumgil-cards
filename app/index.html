@@ -1,0 +1,1198 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2f6f5e"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>이지혜 LAB 블로그 공방</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Jua&family=Noto+Sans+KR:wght@800&display=swap">
+<style>
+/* Layout: 검사 의뢰지처럼 왼쪽 '재료 접수' 카드 → 오른쪽 '완성 원고' 시트. 좁은 화면에서는 위아래로 쌓임 */
+:root{
+  --bg:#f3f5f2; --paper:#fbfcfa; --ink:#1f2b27; --muted:#5d6b66; --line:#d6ddd9;
+  --accent:#2f6f5e; --accent-soft:#e1ede8; --warn:#9a5b1c; --warn-soft:#f6ecdf;
+  --display:"Nanum Myeongjo",serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141a18; --paper:#1b2320; --ink:#e3ebe7; --muted:#9aa9a3; --line:#2f3a36;
+  --accent:#7cc2ab; --accent-soft:#223630; --warn:#e2a865; --warn-soft:#3a2d1e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a18; --paper:#1b2320; --ink:#e3ebe7; --muted:#9aa9a3; --line:#2f3a36;
+  --accent:#7cc2ab; --accent-soft:#223630; --warn:#e2a865; --warn-soft:#3a2d1e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:18px}
+h1{font-family:var(--display);font-size:1.7rem;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+.grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.label{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:6px}
+.field{display:flex;flex-direction:column;gap:2px;margin-bottom:16px}
+input[type=text],textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+textarea{min-height:92px;resize:vertical}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cats label{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;cursor:pointer;background:var(--bg)}
+.cats input{position:absolute;opacity:0;pointer-events:none}
+.cats .wide{grid-column:1/-1}
+.cats label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.cats b{font-weight:600;font-size:.92rem}
+.cats small{color:var(--muted);font-size:.75rem;line-height:1.35}
+.drop{display:block;border:1.5px dashed var(--line);border-radius:8px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;font-size:.9rem}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:default}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
+.picks{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.pick{display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:var(--paper);font-weight:600;font-size:.92rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pick:active{background:var(--accent-soft)}
+.pick{position:relative;overflow:hidden}
+.pick span{pointer-events:none}
+.pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:100px;margin:0;padding:0}
+.pick:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:.8rem}
+@media (hover:none){.hint{display:none}}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-top:10px}
+.thumb{position:relative;aspect-ratio:1;max-width:100%;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb span{position:absolute;left:4px;top:4px;background:var(--paper);color:var(--ink);font:500 .7rem var(--mono);padding:1px 5px;border-radius:4px}
+.thumb button{position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;border:0;background:var(--paper);color:var(--ink);cursor:pointer;font-size:.8rem;line-height:1}
+.btn{font:600 .95rem var(--body);border-radius:8px;padding:12px 16px;border:1px solid var(--accent);background:var(--accent);color:var(--paper);cursor:pointer;width:100%}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.ghost{background:transparent;color:var(--accent);width:auto;padding:7px 12px;font-size:.85rem}
+.status{margin-top:10px;font-size:.85rem;color:var(--muted);min-height:1.2em}
+.status.err{color:var(--warn)}
+.note{font-size:.78rem;color:var(--muted);margin:10px 0 0}
+.sheet-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+.badge{font:500 .72rem var(--mono);letter-spacing:.06em;padding:3px 8px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
+.badge.ok{background:var(--accent-soft);color:var(--accent)}
+.meter{font:500 .8rem var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.meter b{color:var(--ink);font-weight:500}
+.meter.ok b{color:var(--accent)}
+.meter.off b{color:var(--warn)}
+.block{margin-bottom:20px}
+.block h2{font:600 .8rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.titles{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.titles li{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.titles li.on{border-color:var(--accent);background:var(--accent-soft)}
+.titles li span{font-family:var(--display);font-weight:700;font-size:1.02rem;line-height:1.45;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.82rem;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--bg)}
+.chip.kw{border-color:var(--accent);color:var(--accent)}
+.post{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:18px;font-size:16px;font-weight:400;line-height:1.9;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;max-height:620px;overflow:auto}
+.post .ph{display:inline-block;font:500 .78rem var(--mono);color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 7px}
+.post .ft{color:var(--muted)}
+.post .ph.sug{color:var(--warn);background:var(--warn-soft)}
+.post .pic{display:block;margin:6px 0;max-width:420px}
+.post .pic img{display:block;width:100%;height:auto;border-radius:8px;margin-bottom:6px;border:1px solid var(--line)}
+.post .sugbox{border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px}
+.post .sugdesc{display:block;font-size:.85rem;color:var(--muted);line-height:1.5;margin-top:6px}
+.ideas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ideas li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.ideas .ph{display:inline-block;font:500 .78rem var(--mono);color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 7px;white-space:nowrap}
+.idea{min-width:0;display:flex;flex-direction:column;gap:4px}
+.idea p{margin:0;font-size:.92rem}
+.idea code{font:.78rem var(--mono);color:var(--muted)}
+.own{align-self:flex-start;font-size:.72rem;padding:1px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links a{font-size:.8rem;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:2px 10px;text-decoration:none}
+.links a:hover{border-color:var(--accent)}
+.copyall{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.copyall .btn{width:auto;flex:1 1 180px}
+.hidden-copy{position:absolute;left:-9999px}
+#richCopy{position:fixed;left:-10000px;top:0;width:600px;background:#fff;color:#000;font-size:16px;line-height:1.8}
+@media (max-width:860px){.post{max-height:none}}
+.moods{display:flex;gap:6px;flex-wrap:wrap}
+.mood{font:500 .78rem var(--body);text-transform:none;letter-spacing:0;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.mood.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.covers{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.cover{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cover img{display:block;width:100%;max-width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+.cover small{color:var(--muted);font-size:.78rem}
+.cover .btn{padding:9px 12px;font-size:.88rem}
+.cover-edit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:12px}
+@media (max-width:520px){.cover-edit{grid-template-columns:minmax(0,1fr)}}
+.cover-edit textarea{min-height:64px}
+@media (prefers-reduced-motion:no-preference){.btn,.cats label,.titles li{transition:background .15s,border-color .15s}}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:-6px 0 14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{font:600 .9rem var(--body);padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.tab.on{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.count{font:600 .72rem var(--mono);background:var(--warn);color:var(--paper);border-radius:999px;padding:1px 7px}
+.modeline{font-size:.8rem;color:var(--muted)}
+.keybar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--warn-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px}
+.keybar label{font-weight:600;font-size:.88rem;color:var(--warn)}
+.keybar input{flex:1 1 200px;width:auto}
+.keymsg{font-size:.8rem;color:var(--warn)}
+.leftcol{display:flex;flex-direction:column;gap:20px;min-width:0}
+.ptitle{font-family:var(--display);font-size:1.15rem;margin:0}
+.inbox-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.inbox{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.inbox li{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;background:var(--bg);display:flex;flex-direction:column;gap:3px}
+.inbox li:hover,.inbox li:focus-visible{border-color:var(--accent)}
+.inbox li.on{border-color:var(--accent);background:var(--accent-soft)}
+.inbox .d{font:500 .74rem var(--mono);color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.inbox .t{font-family:var(--display);font-weight:700;line-height:1.45}
+.pill{font:600 .68rem var(--body);border-radius:999px;padding:1px 7px}
+.pill.new{background:var(--warn-soft);color:var(--warn)}
+.pill.done{background:var(--accent-soft);color:var(--accent)}
+.posted{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer}
+.post .credit{display:block;font:400 .74rem var(--body);color:var(--muted);margin-top:-2px}
+.post .slotbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.post .slotbtns button{font:500 .76rem var(--body);padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--accent);cursor:pointer}
+.post .ownbox{display:block;border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px;max-width:420px;margin:6px 0}
+.post .ownbox small{display:block;color:var(--muted);font-size:.84rem;line-height:1.5}
+.ai-cover{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>이지혜 LAB 블로그 공방</h1>
+    <p class="sub">사진 몇 장과 테마만 넣으면 네이버 SEO 원고가 완성됩니다</p>
+  </header>
+  <div class="topbar">
+    <nav class="tabs" aria-label="화면 고르기">
+      <button type="button" class="tab on" id="tabWrite">새 글 쓰기</button>
+      <button type="button" class="tab" id="tabInbox" hidden>카드뉴스 원고함 <span class="count" id="inboxCount" hidden></span></button>
+    </nav>
+    <span class="modeline" id="modeline">AI 연결 확인 중…</span>
+  </div>
+  <form class="keybar" id="keybar" hidden>
+    <label for="appKey">앱 비밀번호</label>
+    <input type="password" id="appKey" autocomplete="current-password" placeholder="넷리파이에 정한 APP_PASSWORD">
+    <button type="submit" class="btn ghost">저장</button>
+    <span class="keymsg" id="keymsg"></span>
+  </form>
+
+  <div class="grid">
+   <div class="leftcol">
+    <section class="panel" id="writePanel" aria-label="재료 넣기">
+      <div class="field">
+        <span class="label">카테고리</span>
+        <div class="cats" id="cats">
+          <label><input type="radio" name="cat" value="body" checked><b>Body LAB</b><small>건강·혈액수치·임신·난임</small></label>
+          <label><input type="radio" name="cat" value="mind"><b>Mind LAB</b><small>심리·관계·중독·멘탈</small></label>
+          <label><input type="radio" name="cat" value="tarot"><b>Tarot LAB</b><small>타로·무의식 메시지</small></label>
+          <label><input type="radio" name="cat" value="insure"><b>보험</b><small>보장 점검·보험 상식</small></label>
+          <label><input type="radio" name="cat" value="food"><b>맛집 소개</b><small>방문 후기·메뉴·분위기</small></label>
+          <label><input type="radio" name="cat" value="book"><b>독서</b><small>서평·책 속 문장·적용기</small></label>
+          <label class="wide"><input type="radio" name="cat" value="daily"><b>일상·반려견</b><small>후기·일상·은둥/해찌/하니</small></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="theme">테마 / 하고 싶은 이야기</label>
+        <textarea id="theme" placeholder="예) 건강검진 결과지에 '빈혈 의심'이 떴을 때, 페리틴 수치까지 꼭 봐야 하는 이유"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="label" for="kw">꼭 넣을 키워드 (선택)</label>
+        <input type="text" id="kw" placeholder="예) 빈혈 수치, 페리틴, 철분제">
+      </div>
+
+      <div class="field">
+        <label class="label" for="place">장소 · 지도 (선택)</label>
+        <input type="text" id="place" placeholder="예) 연남동 ○○식당 또는 가게 주소">
+      </div>
+
+      <div class="field">
+        <label class="label" for="links">넣을 링크 (선택 · 한 줄에 하나)</label>
+        <textarea id="links" style="min-height:64px" placeholder="예) 예약 페이지 https://...&#10;상담 신청 https://..."></textarea>
+      </div>
+
+      <div class="field">
+        <span class="label">사진</span>
+        <div class="drop" id="drop">
+          <div class="picks">
+            <div class="pick"><span>앨범에서 선택</span><input type="file" id="files" accept="image/*" multiple aria-label="앨범에서 사진 선택"></div>
+            <div class="pick"><span>카메라로 찍기</span><input type="file" id="cam" accept="image/*" capture="environment" aria-label="카메라로 사진 찍기"></div>
+          </div>
+          <span class="hint">PC에서는 사진을 여기로 끌어놓아도 돼요</span>
+          <small id="imgLimit">최대 10장 · 넣은 사진은 본문에 골고루 배치돼요</small>
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+      <button class="btn" id="go">원고 쓰기</button>
+      <div class="status" id="status" role="status"></div>
+      <p class="note">해시태그·키워드는 AI가 검색 경향을 추정한 것이에요. 실시간 검색량은 네이버 데이터랩·키워드도구로 한 번 확인해 주세요.</p>
+      <p class="note" id="fillNote" hidden>사진이 4장보다 적으면 모자란 자리를 무료 사진(Pexels)이나 AI 그림으로 채워요. 맛집·독서·반려견처럼 직접 찍어야 자연스러운 자리는 비워 둬요.</p>
+    </section>
+
+    <section class="panel" id="inboxPanel" aria-label="카드뉴스 원고함" hidden>
+      <div class="inbox-head">
+        <div>
+          <h2 class="ptitle">카드뉴스 원고함</h2>
+          <p class="note" style="margin:2px 0 0">매주 카드뉴스를 만들 때 함께 쓴 블로그 원고예요. 카드 이미지가 본문에 들어가 있어요.</p>
+        </div>
+        <button type="button" class="btn ghost" id="inboxReload">새로고침</button>
+      </div>
+      <ul class="inbox" id="inbox"></ul>
+      <div class="status" id="inboxStatus" role="status"></div>
+    </section>
+   </div>
+
+    <section class="panel" aria-label="완성 원고">
+      <div class="sheet-head">
+        <span class="badge" id="badge">예시 원고</span>
+        <label class="posted" id="postedWrap" hidden><input type="checkbox" id="postedChk"> 블로그에 올렸어요</label>
+        <span class="meter" id="meter">본문 <b>0</b>자 · 목표 1,600–1,800자</span>
+      </div>
+
+      <div class="block">
+        <h2>제목 후보 <small style="text-transform:none;letter-spacing:0">눌러서 선택</small></h2>
+        <ul class="titles" id="titles"></ul>
+      </div>
+
+      <div class="block">
+        <h2>반복 사용한 인기검색어</h2>
+        <div class="chips" id="keywords"></div>
+      </div>
+
+      <div class="block">
+        <h2>본문 <button class="btn ghost" id="copyBody">본문 복사</button></h2>
+        <div class="post" id="post"></div>
+        <p class="note" id="mapNote" hidden></p>
+      </div>
+
+      <div class="block" id="coverBlock">
+        <h2>대표이미지 <span class="moods" id="moods"></span></h2>
+        <div class="covers" id="covers"></div>
+        <div class="cover-edit">
+          <div class="field" style="margin:0"><label class="label" for="coverMain">큰 글씨 (줄바꿈 가능)</label><textarea id="coverMain"></textarea></div>
+          <div class="field" style="margin:0"><label class="label" for="coverSub">작은 글씨</label><input type="text" id="coverSub"></div>
+        </div>
+        <div class="ai-cover" id="aiCoverRow" hidden>
+          <button type="button" class="btn ghost" id="aiCover">AI 배경 그림 만들기</button>
+          <span class="note" id="aiCoverMsg" style="margin:0">글 분위기에 맞는 배경을 그려서 제목을 얹어요 (1장당 OpenAI 요금)</span>
+        </div>
+        <p class="note">글자를 고치면 이미지가 바로 바뀌어요. 다운로드가 안 되면 이미지를 길게 눌러 저장하세요.</p>
+      </div>
+
+      <div class="block">
+        <h2>해시태그 <button class="btn ghost" id="copyTags">태그 복사</button></h2>
+        <div class="chips" id="tags"></div>
+      </div>
+
+      <div class="copyall">
+        <button class="btn" id="copyAll">제목+본문(사진 포함)+태그 한 번에 복사</button>
+      </div>
+      <textarea class="hidden-copy" id="fallback" aria-hidden="true" tabindex="-1"></textarea>
+      <div id="richCopy" aria-hidden="true"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   이지혜 LAB 블로그 공방
+   - Claude 안에서 열면: Claude가 글을 씀 (사용량은 Claude 요금제)
+   - 넷리파이 앱으로 열면: 서버 함수가 Claude API·OpenAI·Pexels를 부름
+   ========================================================= */
+const REPO = "ljh840125-sudo/maeumgil-cards";
+const LINK_BODY = "https://product.kyobobook.co.kr/detail/S000220363366";
+const LINK_MIND = "https://product.kyobobook.co.kr/detail/S000001718199";
+const BOOKING = "https://naver.me/51u8T8Wh";
+
+const BIO_COUNSEL = "글쓴이 이지혜 작가\n상담대학원 석사 과정중, 중독상담전공. 2000여 명의 직장인, 커플, 개인을 상담하며 현장에서 그들의 마음을 들었습니다. TCI·교류분석·NLP·애착유형 등 다양한 심리평가 도구로 정확한 진단을 하고, 당신의 마음을 듣고, 실존상담으로 답을 찾아드립니다.";
+
+const KPA_CLOSING = `심리상담과 전문치료, 두 가지 모두 중요합니다
+
+저는 심리상담을 공부하고,
+직접 상담을 받기도 하며,
+많은 분들을 상담해드리고 있습니다.
+
+하지만 불안, 우울, 슬픔, 눈물, 분노, 불면증이 심각하다면
+반드시 병원을 방문하셔서
+약물치료와 함께 전문적인 도움을 받으시길 권합니다.
+
+저 역시 사람입니다.
+불안이 몰려오거나 슬픔과 분노로 일상이 무너질 것 같을 때,
+병원에 가서 진료를 받고 약을 복용하며 버텨냈습니다.
+
+병원에 가는 것을 부끄러워하지 마세요.
+그것은 용기 있는 선택이고,
+자신을 돌보는 책임감 있는 행동입니다.
+
+누군가와 이야기가 필요하시다면,
+언제든 편하게 상담을 요청해주세요.
+당신의 마음을 듣겠습니다.
+
+👉 마음길연구소 상담 예약
+${BOOKING}
+
+글쓴이 이지혜 작가
+상담대학원 석사 과정중, 중독상담전공.
+2000여 명의 직장인, 커플, 개인을 상담하며
+현장에서 그들의 마음을 들었습니다.
+TCI·교류분석·NLP·애착유형 등 다양한 심리평가 도구로
+정확한 진단을 하고, 당신의 마음을 듣고,
+실존상담으로 답을 찾아드립니다.
+
+마음길연구소 소장 · 한국심리분석협회
+📖 공저 『나를 알고 나를 담는다』
+${LINK_MIND}`;
+
+const FOOTERS = {
+  body: "글쓴이 이지혜 작가\n(현) 20년차 임상병리사, 임상병리사 국가고시 모의고사 문제집 집필자 [시대고시기획]\n(구) 혈액학 전문강사\n" + LINK_BODY,
+  mind: BIO_COUNSEL + "\n" + LINK_MIND,
+  tarot: BIO_COUNSEL,
+  insure: "글쓴이 이지혜 작가\n(현) 20년차 임상병리사, 손해보험·생명보험·변액보험 자격 보유 보험설계사\n수천 건의 검사 결과를 본 눈으로, 진단부터 보장까지 꼼꼼히 함께 점검해 드립니다.",
+  food: BIO_COUNSEL,
+  book: BIO_COUNSEL,
+  daily: BIO_COUNSEL,
+  kpa: KPA_CLOSING
+};
+
+const INTROS = {
+  body: "[Body LAB 내 몸이 보내는 신호, 제대로 듣고 계신가요? 수천 건의 검사 결과를 본 20년차 임상병리사가 임신, 난임, 다이어트, 건강까지 임상적 근거와 경험으로 풀어드립니다.]",
+  tarot: "[Tarot LAB 당신의 무의식이 이미 답을 알고 있습니다. 상담심리전공한 타로리더가 카드 너머의 우주의 메세지를 읽어드립니다]"
+};
+
+const CARE = `심리상담과 전문치료, 두 가지 모두 중요합니다.
+저는 심리상담을 공부하고, 직접 상담을 받기도 하며, 많은 분들을 상담해드리고 있습니다.
+하지만 불안, 우울, 슬픔, 눈물, 분노, 불면증이 심각하다면 반드시 병원을 방문하셔서 약물치료와 함께 전문적인 도움을 받으시길 권합니다.
+저 역시 사람입니다. 불안이 몰려오거나 슬픔과 분노로 일상이 무너질 것 같을 때, 병원에 가서 진료를 받고 약을 복용하며 버텨냈습니다.
+병원에 가는 것을 부끄러워하지 마세요. 그것은 용기 있는 선택이고, 자신을 돌보는 책임감 있는 행동입니다.
+누군가와 이야기가 필요하시다면, 언제든 편하게 상담을 요청해주세요. 당신의 마음을 듣겠습니다.`;
+
+const ALCOHOL = `알코올 중독 주제일 때만, 작가의 진심(직접 인용하지 말고 자연스러운 1~3문장으로 비춤): 그 시간을 함께 견뎌준 사람에게 지금도 미안하다. 곁에 있을 때 더 나은 사람이 되지 못했고, 그 고통을 외면하고 탓했다. 그 사람에게 속죄하는 마음으로, 같은 고통을 겪는 분들을 돕는다.`;
+
+const CAT_RULES = {
+  body: `카테고리: Body LAB(건강·혈액수치·임신·난임·다이어트).
+- 작가: 20년차 임상병리사, 산부인과 진단검사실장, 혈액학·수혈학 강사 출신. 전문 지식을 쉽게 풀어 설명하는 것이 강점.
+- 본문 맨 앞에 이 소개 문장을 그대로 넣기: ${INTROS.body}
+- 검사 수치·정상범위는 일반적으로 통용되는 범위만, "검사기관마다 다를 수 있어요"를 덧붙임. 진단·처방처럼 단정하지 말고 진료 권유로 마무리.`,
+  mind: `카테고리: Mind LAB(심리·관계·중독·멘탈).
+- 작가: 상담대학원 중독상담 전공, 커플·연애 상담 7년 2000여 명. TCI·에니어그램·교류분석·사랑의 언어·사티어·감정코칭·NLP 활용. ACOA·공동의존 회복 경험이 있음. MMPI는 언급하지 말 것.
+- 사례는 80% 가족·자녀·중독·게임 같은 일상 공감 사례, 20% 직장·동료·조직 관계 사례.
+- 독자를 공격하듯 쓰지 말 것. 상대가 느끼는 감정이나 숨긴 속마음(예: 버려질까 두려워서)을 짚지 말고, 습관·특징만 담백하게 보여줘 "어? 난가?" 하고 스스로 알아차리게.
+- "마음의 모양" 같은 뜬구름 표현 금지. 마무리 행동 유도는 "나는 어떤 유형일까? 나의 기질은 무엇일까? 궁금하다면 프로필 링크에서"처럼 구체적으로.
+- 아래 내용을 본문 후반에 자연스럽게 녹여 넣기(문장을 조금 다듬어도 됨):
+${CARE}
+- ${ALCOHOL}`,
+  tarot: `카테고리: Tarot LAB.
+- 작가: 상담심리 전공 타로리더.
+- 본문 맨 앞에 이 소개 문장을 그대로 넣기: ${INTROS.tarot}
+- 운명론으로 단정하지 말고, 카드를 자기 성찰의 질문으로 연결.`,
+  insure: `카테고리: 보험(보장 점검·보험 상식).
+- 작가: 20년차 임상병리사이자 손해·생명·변액보험 자격을 가진 보험설계사. 검사·진단 현장 경험으로 "왜 이 보장이 필요한지"를 쉽게 설명하는 것이 강점. 판매보다 정보로 신뢰를 먼저 얻는 톤.
+- 보험 광고 규정을 지킬 것: 특정 회사·상품명 추천 금지, "무조건", "100% 보장", "최저가", "손해 없는" 같은 단정·과장 금지, 보험료·환급금 숫자 약속 금지, 다른 상품 깎아내리기 금지.
+- 기존 보험을 해지하고 새로 가입하라고 권하지 말 것. 해지·갈아타기를 다룰 때는 불이익(보험료 상승, 면책·감액기간 재적용, 가입 거절 가능성)을 함께 안내.
+- 본문 끝에 이 문장을 그대로 넣기: "보험 가입 전 상품설명서와 약관을 꼭 확인하세요. 보장 내용과 보험료는 가입 조건에 따라 달라질 수 있습니다."
+- 마무리 행동 유도는 "내 보험, 진단비가 충분한지 점검이 필요하다면 프로필에서 상담 신청"처럼 구체적으로.`,
+  food: `카테고리: 맛집 소개.
+- 가게 이름·위치·가격·영업시간·메뉴명은 테마에 적힌 것과 사진에 실제로 보이는 것만 쓰기. 모르는 정보는 지어내지 말고 생략.
+- 사진 속 음식의 색, 식감이 느껴지는 모습, 공간 분위기를 생생하게 묘사.
+- 테마에 '협찬', '제공', '체험단'이 있으면 본문 맨 앞에 "이 글은 업체로부터 [제품/식사]를 제공받아 작성했습니다"를 넣기. '내돈내산'이라고 적혀 있을 때만 내돈내산이라고 쓰기.
+- 인기검색어는 "지역명+맛집", "지역명+메뉴" 형태로 고르기.
+- 끝에 한 줄 요약(이런 분께 추천)으로 마무리.`,
+  book: `카테고리: 독서(서평·적용기).
+- 작가: 상담대학원생이자 에니어그램 실용서 공동저자. 책 내용을 상담·심리 관점으로 연결해 삶에 적용하는 것이 강점.
+- 책 제목·저자는 테마에 적힌 대로만 쓰기. 모르는 책 내용을 지어내지 말고, 테마와 사진에 있는 내용을 중심으로.
+- 책 문장을 길게 옮겨 적지 말 것. 인용은 한 문장(15자~40자 안팎) 이하로 한 번만, 나머지는 작가의 말로 풀어 쓰기.
+- 구성: 이 책을 집어 든 이유 → 마음에 남은 내용 → 내 삶·상담 현장에 적용해 본 점 → 이런 분께 추천.`,
+  daily: `카테고리: 일상·후기·반려견 이야기.
+- 반려견이 등장하면 은둥이(13살 오드아이 믹스, 막내딸), 해찌(11살 블랙탄 포메라니안, 아들), 하니(4살 오렌지 포메라니안, 딸) 중 사진에 보이는 아이만 언급. 확실하지 않으면 이름을 쓰지 말 것.
+- 따뜻하고 가벼운 톤.`
+};
+
+function buildPrompt(cat, theme, kw, nImg, place, links, descs, fill){
+  const fillRule = `글 흐름에 맞춰 사진 자리를 추가로 만들어 전체 4곳이 되게 할 것. 추가 자리는 [사진${nImg+1}]부터 번호를 이어 단독 줄로 넣고, 추가 자리마다 photoIdeas에 slot(번호), desc(어울리는 사진 한국어 한 줄), query(무료 사진 검색용 영어 키워드 2~4단어), own(맛집 음식·책·반려견처럼 직접 찍어야 자연스러우면 true, 아니면 false)을 적기.`;
+  let photo;
+  if (nImg){
+    photo = `${descs ? `사진 ${nImg}장(1번~${nImg}번). 각 사진에 보이는 내용:\n${descs}\n이 설명을 사진이라고 생각하고,` : `사진 ${nImg}장이 함께 첨부됨(첨부 순서대로 1번~${nImg}번).`} [사진1]부터 [사진${nImg}]까지 모두 한 번씩, 단독 줄로 넣기. 본문 앞·중간·뒤에 비슷한 간격으로 골고루 나눠 배치하고 한곳에 몰지 말 것. 각 사진은 그 사진 내용과 맞는 문단 바로 뒤에 두기. 사진에 실제로 보이는 것만 말하고, 보이지 않는 것을 지어내지 말 것.${fill && nImg < 4 ? " " + fillRule : ""}`;
+  } else {
+    photo = fill ? `사진 없음. ${fillRule.replace(`[사진${nImg+1}]부터`, "[사진1]부터")}` : "사진 없음. [사진] 표시를 넣지 말 것.";
+  }
+  return `너는 네이버 블로그 원고 작가 '이지혜 작가'의 대필 파트너야. 아래 조건으로 블로그 글 한 편을 써 줘.
+
+[테마]
+${theme}
+
+[꼭 넣을 키워드]
+${kw || "(없음 — 테마에서 네이버 검색이 잘 될 인기검색어 2~3개를 직접 고르기)"}
+
+[사진]
+${photo}
+
+${place ? `[지도]
+장소: ${place}
+가게·장소 소개가 끝나는 지점에 "찾아가는 길은 아래 지도를 참고하세요"처럼 한 문장 안내 후 [지도]를 단독 줄로 한 번 넣기. 장소 이름은 적힌 대로만 쓰고, 주소·영업시간을 지어내지 말 것.
+` : ""}${links.length ? `[링크]
+${links.map((l,i)=>`링크${i+1}: ${l.label || "(설명 없음)"} ${l.url}`).join("\n")}
+각 링크를 어울리는 위치에 한 문장으로 소개한 뒤 [링크1], [링크2]처럼 단독 줄로 넣기. 주소(URL)는 본문에 직접 쓰지 말 것.
+` : ""}
+${CAT_RULES[cat]}
+
+[공통 규칙]
+- 말투: 편안한 존댓말, 전문지식은 쉽게. 뻔한 말 대신 공감되면서 끌리는 후킹 문장.
+- 구성: 후킹 → 공감 → 이야기/정보 → 해결방안 → 행동 유도.
+- 네이버 SEO: 인기검색어 2~3개를 제목과 본문 앞부분·중간·끝에 자연스럽게 반복(각 3~5회). 소제목은 한 줄로 "▶ 소제목" 형식.
+- 가독성: 한 문장마다 줄바꿈(\\n), 2~4문장마다 빈 줄(\\n\\n)로 문단 구분. 마크다운(#, **, -)은 쓰지 말 것.
+- 본문 길이: 공백 포함 1,600~1,800자(작가 소개 제외). 이 범위를 꼭 지킬 것.
+- 확인되지 않은 수치·성과("가장 많이 저장된", "90%가" 등)는 쓰지 말 것.
+- 작가 소개(글쓴이)는 쓰지 말 것. 프로그램이 자동으로 붙임.
+- 제목 후보 3개: 인기검색어를 앞쪽에 넣고, 호기심·공감으로 클릭하고 싶게. 30자 안팎.
+- 해시태그 12~15개: 네이버에서 검색량이 많을 만한 것 위주, # 없이 단어만.
+- 대표이미지: mood는 글 분위기로 고르기. 즐겁고 신나는 글(맛집·여행·일상 즐거움)은 "bright", 정보·팩트 위주(건강 수치·보험·검사)는 "cool", 정서·감정·관계(심리·위로·타로·감성 독서)는 "pastel". cover.main은 이미지 큰 글씨로, 제목의 핵심을 8~16자로 줄여 필요하면 \\n으로 2줄. cover.sub는 20자 안팎 한 줄. pastel에는 "망치는" 같은 강한 단어 쓰지 말 것.
+
+[출력] 다른 말 없이 JSON 하나만:
+{"titles":["제목1","제목2","제목3"],"keywords":["인기검색어1","인기검색어2","인기검색어3"],"body":"본문 전체(줄바꿈은 \\n)","hashtags":["태그1","태그2"],"mood":"bright|cool|pastel 중 하나","cover":{"main":"큰 글씨","sub":"작은 글씨"},"photoIdeas":[]}`;
+}
+
+/* ---------- state ---------- */
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+let photos = [];        // 넣은 사진 {file,url}
+let slots = [];         // 본문 사진 자리 (index = 번호-1): {kind, blob, url, data, credit, idea, alts, altIdx}
+let maxImgs = 0;        // Claude 모드에서 한 번에 볼 수 있는 사진 수
+const MAX_PHOTOS = 10;
+let result = null;
+let pickedTitle = 0;
+let sample = null, downloads = null;
+const MODE = { claude:false, server:false, cfg:{} };
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+
+const EXAMPLE = {
+  cat:"body",
+  titles:["빈혈 수치 정상인데 왜 어지러울까? 페리틴 수치 꼭 보세요","페리틴 수치, 헤모글로빈보다 먼저 떨어지는 철분 신호","빈혈 수치 보는 법, 20년차 임상병리사가 결과지로 알려드려요"],
+  keywords:["빈혈 수치","페리틴 수치","철분제"],
+  body:`${INTROS.body}\n\n"헤모글로빈은 정상이래요. 그런데 왜 이렇게 어지럽죠?"\n검사실에서 정말 자주 듣는 질문이에요.\n\n▶ 빈혈 수치, 헤모글로빈만 보면 놓쳐요\n빈혈 수치라고 하면 보통 헤모글로빈만 떠올리시죠.\n그런데 우리 몸은 철분이 부족해져도 한동안 헤모글로빈을 지켜내요.\n창고에 쌓아둔 철분을 먼저 꺼내 쓰거든요.\n\n그 창고의 재고가 바로 페리틴 수치예요.\n\n(예시 원고입니다. 왼쪽에 테마와 사진을 넣고 '원고 쓰기'를 누르면 실제 원고로 바뀌어요.)`,
+  hashtags:["빈혈수치","페리틴","페리틴수치","철분제","철분부족","어지러움","건강검진결과","혈액검사","임산부빈혈","임상병리사"],
+  mood:"cool",
+  cover:{main:"빈혈 수치 정상인데\n왜 어지러울까?", sub:"페리틴 수치까지 봐야 하는 이유"}
+};
+
+/* ---------- 사진 넣기 ---------- */
+function renderThumbs(){
+  const t = $("thumbs"); t.innerHTML = "";
+  photos.forEach((p,i)=>{
+    const d = document.createElement("div"); d.className="thumb";
+    const img = document.createElement("img"); img.src=p.url; img.alt=`사진 ${i+1}`;
+    const s = document.createElement("span"); s.textContent = i+1;
+    const b = document.createElement("button"); b.type="button"; b.textContent="×"; b.setAttribute("aria-label",`사진 ${i+1} 빼기`);
+    b.onclick = ()=>{ photos.splice(i,1); renderThumbs(); };
+    d.append(img,s,b); t.append(d);
+  });
+}
+const isImg = f => (f.type||"").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name||"");
+async function decode(f){
+  try{ return await createImageBitmap(f, {imageOrientation:"from-image"}); }catch{}
+  return await new Promise((res,rej)=>{
+    const u = URL.createObjectURL(f), im = new Image();
+    im.onload = ()=>res(im);
+    im.onerror = ()=>{ URL.revokeObjectURL(u); rej(new Error("decode")); };
+    im.src = u;
+  });
+}
+/* 모든 사진을 1600px JPG로 다시 저장 (갤럭시 고해상도·HEIC·PNG 대응) */
+async function toJpeg(f, max=1600){
+  try{
+    const src = await decode(f);
+    const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+    if (!w || !h) return null;
+    const s = Math.min(1, max / Math.max(w, h));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w*s)); c.height = Math.max(1, Math.round(h*s));
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(src, 0, 0, c.width, c.height);
+    if (src.close) src.close();
+    const b = await new Promise(r=>c.toBlob(r, "image/jpeg", 0.86));
+    return b ? new File([b], "photo.jpg", {type:"image/jpeg"}) : null;
+  }catch{ return null; }
+}
+async function addFiles(list){
+  const all = [...list].filter(isImg);
+  if (!all.length){ if (list.length) setStatus("사진 파일만 넣을 수 있어요.", true); return; }
+  const arr = all.slice(0, Math.max(0, MAX_PHOTOS - photos.length));
+  setStatus("사진 준비 중…");
+  let bad = 0;
+  for (const f of arr){
+    const b = await toJpeg(f);
+    if (!b){ bad++; continue; }
+    photos.push({file:b, url:URL.createObjectURL(b)});
+    renderThumbs();
+  }
+  if (bad) setStatus(`사진 ${bad}장을 열 수 없어 뺐어요. 갤러리에서 스크린샷으로 다시 저장해 넣어 주세요.`, true);
+  else if (all.length > arr.length) setStatus(`사진은 한 글에 ${MAX_PHOTOS}장까지 넣을 수 있어요.`, true);
+  else setStatus(`사진 ${photos.length}장 준비됐어요.`);
+}
+$("files").addEventListener("change", e=>{ addFiles(e.target.files); e.target.value=""; });
+$("cam").addEventListener("change", e=>{ addFiles(e.target.files); e.target.value=""; });
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop", e=>addFiles(e.dataTransfer.files));
+
+/* ---------- 원고 화면 ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+const fileToDataURL = f => new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.onerror=()=>r(""); fr.readAsDataURL(f); });
+
+/* 내 사진은 한 번씩 꼭, 빠진 사진은 본문에 고르게 끼워 넣기 */
+function ensurePhotos(body, nUser, extra = new Set()){
+  const seen = new Set();
+  let b = body.replace(/\[사진\s?(\d+)\]/g,(m,n)=>{
+    n = Number(n);
+    const ok = (n>=1 && n<=nUser) || extra.has(n);
+    if (!ok || seen.has(n)) return "";
+    seen.add(n); return `[사진${n}]`;
+  });
+  b = b.replace(/\n{3,}/g,"\n\n");
+  const missing = []; for (let i=1;i<=nUser;i++) if (!seen.has(i)) missing.push(i);
+  if (missing.length){
+    const paras = b.split("\n\n"), step = paras.length/(missing.length+1);
+    for (let k=missing.length-1;k>=0;k--) paras.splice(Math.max(1, Math.round(step*(k+1))), 0, `[사진${missing[k]}]`);
+    b = paras.join("\n\n");
+  }
+  return b.trim();
+}
+function fillBody(){
+  let b = result.body.trim();
+  b = b.replace(/\[링크\s?(\d+)\]/g,(m,n)=>{ const l=(result.links||[])[n-1]; return l ? l.url : m; });
+  if (result.place) b = b.replace(/\[지도\]/g, `[지도: 네이버 글쓰기 '장소' 버튼으로 "${result.place}" 추가]`);
+  return b;
+}
+function fullBody(){ return fillBody() + "\n\n\n" + (FOOTERS[result.cat] || BIO_COUNSEL); }
+function tagLine(){ return result.hashtags.map(t=>"#"+String(t).replace(/^#/,"").replace(/\s+/g,"")).join(" "); }
+
+function slotHtml(n){
+  const s = slots[n-1];
+  if (!s) return `<span class="ph">[사진${n}]</span>`;
+  const idea = s.idea ? esc(String(s.idea.desc||"")) : "";
+  if (s.kind === "loading") return `<span class="ownbox"><span class="ph sug">[사진${n}] 사진 찾는 중…</span><small>${idea}</small></span>`;
+  if (!s.url){
+    const btns = MODE.server ? [
+      MODE.cfg.pexels && s.idea?.query ? `<button type="button" data-find="${n}">무료 사진 찾기</button>` : "",
+      MODE.cfg.openai ? `<button type="button" data-ai="${n}">AI 그림 만들기</button>` : ""
+    ].join("") : "";
+    return `<span class="ownbox"><span class="ph sug">[사진${n}] ${s.idea?.own ? "직접 찍은 사진 추천" : "빈 자리"}</span><small>${idea}</small>${btns ? `<span class="slotbtns">${btns}</span>` : ""}</span>`;
+  }
+  const label = s.kind==="mine" ? "내 사진" : s.kind==="card" ? "카드뉴스" : s.kind==="stock" ? "무료 사진" : "AI 그림";
+  const btns = MODE.server && (s.kind==="stock" || s.kind==="ai") ? [
+    s.alts && s.alts.length > 1 ? `<button type="button" data-alt="${n}">다른 사진</button>` : "",
+    MODE.cfg.pexels && s.kind==="ai" && s.idea?.query ? `<button type="button" data-find="${n}">무료 사진으로</button>` : "",
+    MODE.cfg.openai ? `<button type="button" data-ai="${n}">${s.kind==="ai" ? "다시 그리기" : "AI 그림으로"}</button>` : ""
+  ].join("") : "";
+  return `<span class="pic"><img src="${s.url}" alt="사진 ${n}" onerror="this.remove()"><span class="ph">[사진${n} · ${label}]</span>${s.credit ? `<span class="credit">${esc(s.credit)}</span>` : ""}${btns ? `<span class="slotbtns">${btns}</span>` : ""}</span>`;
+}
+
+function render(isExample){
+  const badge = result.source==="inbox" ? "카드뉴스 원고" : isExample ? "예시 원고" : "완성 원고";
+  $("badge").textContent = badge;
+  $("badge").className = "badge" + (isExample ? "" : " ok");
+  $("postedWrap").hidden = result.source !== "inbox";
+  if (result.source==="inbox") $("postedChk").checked = !!store.get("lab-posted", {})[result.id];
+  const ul = $("titles"); ul.innerHTML="";
+  result.titles.forEach((t,i)=>{
+    const li=document.createElement("li"); if(i===pickedTitle) li.className="on";
+    li.tabIndex=0; li.innerHTML=`<span>${esc(t)}</span>`;
+    const pick=()=>{pickedTitle=i;render(isExample);};
+    li.onclick=pick; li.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick();}};
+    ul.append(li);
+  });
+  $("keywords").innerHTML = result.keywords.map(k=>`<span class="chip kw">${esc(k)}</span>`).join("");
+  $("tags").innerHTML = result.hashtags.map(k=>`<span class="chip">#${esc(String(k).replace(/^#/,""))}</span>`).join("");
+  const bodyHtml = esc(result.body.trim())
+    .replace(/\[사진\s?(\d+)\]/g,(m,n)=>slotHtml(Number(n)))
+    .replace(/\[링크\s?(\d+)\]/g,(m,n)=>{ const l=(result.links||[])[n-1]; return l ? `<span class="ph">링크 · ${esc(l.url)}</span>` : m; })
+    .replace(/\[지도\]/g, `<span class="ph">[지도 · ${esc(result.place||"장소")}]</span>`);
+  const mn = $("mapNote");
+  mn.hidden = !result.place;
+  if (result.place) mn.innerHTML = `네이버 글쓰기에서 [지도] 자리에 커서를 두고 상단 '장소' 버튼으로 검색해 넣으세요. · <a href="https://map.naver.com/p/search/${encodeURIComponent(result.place)}" target="_blank" rel="noopener">네이버 지도에서 위치 확인</a>`;
+  $("post").innerHTML = bodyHtml + `\n\n\n<span class="ft">${esc(FOOTERS[result.cat] || BIO_COUNSEL)}</span>`;
+  const n = result.body.trim().replace(/\[사진\s?\d+\]/g,"").replace(/\n+/g,"\n").length;
+  const m=$("meter"); m.innerHTML=`본문 <b>${n.toLocaleString()}</b>자 · 목표 1,600–1,800자`;
+  m.className = "meter " + (isExample ? "" : (n>=1550&&n<=1950 ? "ok":"off"));
+}
+$("postedChk").addEventListener("change", e=>{
+  if (!result || result.source!=="inbox") return;
+  const p = store.get("lab-posted", {}); if (e.target.checked) p[result.id]=Date.now(); else delete p[result.id];
+  store.set("lab-posted", p); renderInboxList();
+});
+
+/* 본문 사진 자리 버튼: 다른 사진 / 무료 사진 찾기 / AI 그림 */
+$("post").addEventListener("click", async e=>{
+  const b = e.target.closest("button[data-alt],button[data-find],button[data-ai]"); if (!b) return;
+  const n = Number(b.dataset.alt || b.dataset.find || b.dataset.ai);
+  const s = slots[n-1] || {}; const old = b.textContent; b.disabled = true;
+  try{
+    if (b.dataset.alt){ b.textContent="바꾸는 중…"; await setStock(n, s.alts, ((s.altIdx||0)+1) % s.alts.length); }
+    else if (b.dataset.find){ b.textContent="찾는 중…"; const list = await api.photos(s.idea.query); if (!list.length) throw {message:"맞는 사진이 없어요"}; await setStock(n, list, 0); }
+    else { b.textContent="그리는 중… (30초~1분)"; await aiSlot(n); }
+    render(false); renderCovers();
+  }catch(err){ b.textContent = err?.message ? String(err.message).slice(0,40) : "실패 · 다시 눌러 주세요"; b.disabled=false; setTimeout(()=>{ b.textContent=old; }, 2500); }
+});
+
+/* ---------- 복사 ---------- */
+function textToHtml(text){
+  return text.split("\n").map(ln=>{
+    const m = ln.trim().match(/^\[사진\s?(\d+)\]$/);
+    if (m){
+      const s = slots[m[1]-1];
+      if (!s || !s.data) return "";
+      return `<p><img src="${s.data}" style="max-width:100%;height:auto"></p>` + (s.credit ? `<p style="font-size:12px;color:#888888">${esc(s.credit)}</p>` : "");
+    }
+    if (/^▶/.test(ln.trim())) return `<p><b>${esc(ln)}</b></p>`;
+    return ln.trim() ? `<p>${esc(ln)}</p>` : `<p><br></p>`;
+  }).join("");
+}
+function plainText(text){ return text.replace(/^\s*\[사진\s?\d+\]\s*$/gm, (m)=>{ const n=Number(m.match(/\d+/)[0]); return slots[n-1]?.data ? "" : m.trim(); }).replace(/\n{3,}/g,"\n\n"); }
+async function copy(text, btn){
+  const old = btn.textContent;
+  try{ await navigator.clipboard.writeText(text); btn.textContent="복사됨"; }
+  catch{ const f=$("fallback"); f.value=text; f.select(); btn.textContent="선택됨 — 길게 눌러 복사"; }
+  setTimeout(()=>btn.textContent=old,1800);
+}
+async function copyRich(text, btn){
+  const old = btn.textContent;
+  const html = textToHtml(text), plain = plainText(text);
+  const hasImg = /<img /.test(html);
+  let ok = false;
+  try{
+    const d = $("richCopy"); d.innerHTML = html;
+    const r = document.createRange(); r.selectNodeContents(d);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    ok = document.execCommand("copy");
+    sel.removeAllRanges(); d.innerHTML = "";
+  }catch{ ok = false; }
+  if (!ok && window.ClipboardItem && navigator.clipboard?.write){
+    try{
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([html], {type:"text/html"}),
+        "text/plain": new Blob([plain], {type:"text/plain"})
+      })]);
+      ok = true;
+    }catch{}
+  }
+  if (!ok){ try{ await navigator.clipboard.writeText(plain); ok = "text"; }catch{} }
+  btn.textContent = ok===true ? (hasImg ? "사진까지 복사됨" : "복사됨") : ok==="text" ? "글자만 복사됨" : "복사 안 됨";
+  setTimeout(()=>btn.textContent=old, 2200);
+}
+const fullAll = ()=> result.titles[pickedTitle]+"\n\n"+fullBody()+"\n\n"+tagLine();
+$("copyBody").onclick = e=>copyRich(fullBody(), e.currentTarget);
+$("copyTags").onclick = e=>copy(tagLine(), e.currentTarget);
+$("copyAll").onclick = e=>copyRich(fullAll(), e.currentTarget);
+
+/* ---------- 파일 저장 ---------- */
+async function saveBlob(blob, filename){
+  if (downloads){ await downloads.save({ filename, data: blob }); return "saved"; }
+  if (window.claude) throw {code:"unavailable"};
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  return "saved";
+}
+
+/* ---------- 넷리파이 서버 ---------- */
+const appKey = ()=> store.get("lab-key", "");
+const hdr = (extra={}) => ({ "x-app-key": appKey(), ...extra });
+async function apiFetch(path, opts={}){
+  const r = await fetch(path, { ...opts, headers: hdr(opts.headers||{}) });
+  if (r.status === 401){ showKeybar("비밀번호가 맞지 않아요. 다시 입력해 주세요."); throw {code:"bad_key", message:"앱 비밀번호가 맞지 않아요."}; }
+  return r;
+}
+const api = {
+  async upload(file){
+    const r = await apiFetch("/api/upload", { method:"POST", headers:{"content-type":"image/jpeg"}, body:file });
+    const j = await r.json(); if (!r.ok) throw {message:j.error||"사진 올리기 실패"}; return j.key;
+  },
+  async job(kind, payload, onTick){
+    const id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random().toString(36).slice(2));
+    const r = await apiFetch("/api/job-background", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ id, kind, ...payload }) });
+    if (!r.ok && r.status !== 202) throw {message:"서버가 작업을 받지 못했어요 ("+r.status+")"};
+    for (let i=0;i<120;i++){
+      await sleep(i < 3 ? 4000 : 3000);
+      onTick && onTick(i);
+      const q = await apiFetch("/api/job?id="+encodeURIComponent(id));
+      const j = await q.json().catch(()=>({}));
+      if (j.status==="done") return j.result;
+      if (j.status==="error") throw {message:j.error};
+    }
+    throw {message:"시간이 너무 오래 걸려요. 다시 눌러 주세요."};
+  },
+  async photos(q){
+    const r = await apiFetch("/api/photos?q="+encodeURIComponent(q));
+    const j = await r.json(); if (!r.ok) throw {message:j.error}; return j.photos || [];
+  },
+  async photoBlob(u){
+    const r = await apiFetch("/api/photo?u="+encodeURIComponent(u));
+    if (!r.ok) throw {message:"사진을 받지 못했어요"}; return await r.blob();
+  }
+};
+function parseLoose(text){
+  const t = String(text||"").trim();
+  try{ return JSON.parse(t); }catch{}
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (f){ try{ return JSON.parse(f[1]); }catch{} }
+  const a = t.indexOf("{"), b = t.lastIndexOf("}");
+  if (a>=0 && b>a){ try{ return JSON.parse(t.slice(a,b+1)); }catch{} }
+  throw {code:"invalid_json"};
+}
+const b64ToBlob = (b64, type) => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new Blob([u], {type}); };
+
+const MOOD_STYLE = {
+  bright: "bright cheerful warm colors, sunny daylight, playful and clean",
+  cool:   "cool blue and navy tones, clean minimal editorial look, calm clinical clarity",
+  pastel: "soft pastel colors, gentle cozy dreamy mood, light watercolor texture"
+};
+async function setStock(n, list, i){
+  const p = list[i];
+  const blob = await toJpeg(await api.photoBlob(p.src));
+  if (!blob) throw {message:"사진을 열 수 없어요"};
+  slots[n-1] = { ...(slots[n-1]||{}), kind:"stock", blob, url:URL.createObjectURL(blob), data: await fileToDataURL(blob), credit:`사진: ${p.photographer} / Pexels`, alts:list, altIdx:i };
+}
+async function aiSlot(n){
+  const s = slots[n-1] || {};
+  const mood = result.mood || "pastel";
+  const prompt = `Illustration for a Korean blog post. Scene: ${s.idea?.desc || ""} (${s.idea?.query || ""}). ${MOOD_STYLE[mood]}. No text, no letters, no logos, no watermark. Natural, warm, not uncanny.`;
+  const res = await api.job("image", { prompt, size:"1536x1024" });
+  const blob = await toJpeg(b64ToBlob(res.b64, "image/png"));
+  slots[n-1] = { ...s, kind:"ai", blob, url:URL.createObjectURL(blob), data: await fileToDataURL(blob), credit:"AI로 만든 이미지", alts:null };
+}
+async function fillSlots(ideas){
+  for (const idea of ideas){
+    const n = Number(idea.slot);
+    if (idea.own || !MODE.cfg.pexels){ slots[n-1] = { kind:"empty", idea }; continue; }
+    slots[n-1] = { kind:"loading", idea }; render(false);
+    try{
+      const list = await api.photos(idea.query || idea.desc);
+      if (!list.length) throw 0;
+      slots[n-1].idea = idea; await setStock(n, list, 0);
+    }catch{ slots[n-1] = { kind:"empty", idea }; }
+    render(false);
+  }
+}
+
+/* ---------- 대표이미지 ---------- */
+const MOODS = {
+  bright:{label:"밝게",  bg:["#FFE47A","#FFA978"], ink:"#2B1C10", sub:"#6A4224", font:'"Jua"', weight:"400", tint:"rgba(70,35,10,"},
+  cool:  {label:"차갑게", bg:["#0D2236","#1F4D74"], ink:"#FFFFFF", sub:"#9FD0F4", font:'"Noto Sans KR"', weight:"800", tint:"rgba(6,22,38,"},
+  pastel:{label:"파스텔", bg:["#F8E5EE","#E1ECFB"], ink:"#4A3D57", sub:"#7D6C8C", font:'"Nanum Myeongjo"', weight:"800", tint:"rgba(70,55,88,"}
+};
+const CAT_LABEL = {body:"Body LAB", mind:"Mind LAB", kpa:"Mind LAB", tarot:"Tarot LAB", insure:"이지혜 LAB · 보험", food:"이지혜 LAB · 맛집", book:"이지혜 LAB · 독서", daily:"이지혜 LAB · 일상"};
+let coverBlobs = [];
+let coverAI = null;   // AI 배경 그림 (Blob)
+
+function wrapLines(g, text, maxW){
+  const out = [];
+  for (const para of String(text).split("\n")){
+    let line = "";
+    for (const ch of [...para]){
+      const t = line + ch;
+      if (g.measureText(t).width > maxW && line){
+        const sp = line.lastIndexOf(" ");
+        if (sp > 0 && ch !== " "){ out.push(line.slice(0,sp)); line = line.slice(sp+1) + ch; }
+        else { out.push(line); line = ch === " " ? "" : ch; }
+      } else line = t;
+    }
+    out.push(line.trim());
+  }
+  return out.filter((l,i,a)=>l || (i>0 && i<a.length-1));
+}
+async function drawCover(mood, main, sub, photo){
+  const M = MOODS[mood] || MOODS.cool, S = 1080, pad = 92;
+  const c = document.createElement("canvas"); c.width = S; c.height = S;
+  const g = c.getContext("2d");
+  try{ await Promise.all([document.fonts.load(`${M.weight} 96px ${M.font}`), document.fonts.load(`600 36px "IBM Plex Sans KR"`)]); }catch{}
+  let ink = M.ink, subInk = M.sub;
+  if (photo){
+    try{
+      const src = await decode(photo);
+      const w = src.naturalWidth||src.width, h = src.naturalHeight||src.height, k = Math.max(S/w, S/h);
+      g.drawImage(src, (S-w*k)/2, (S-h*k)/2, w*k, h*k);
+    }catch{}
+    const gr = g.createLinearGradient(0,0,0,S);
+    gr.addColorStop(0, M.tint+"0.15)"); gr.addColorStop(.45, M.tint+"0.35)"); gr.addColorStop(1, M.tint+"0.88)");
+    g.fillStyle = gr; g.fillRect(0,0,S,S);
+    ink = "#FFFFFF"; subInk = "rgba(255,255,255,.85)";
+  } else {
+    const gr = g.createLinearGradient(0,0,S,S);
+    gr.addColorStop(0, M.bg[0]); gr.addColorStop(1, M.bg[1]);
+    g.fillStyle = gr; g.fillRect(0,0,S,S);
+    if (mood==="bright"){
+      g.fillStyle="rgba(255,255,255,.28)";
+      [[930,170,190],[120,930,150],[1010,820,70]].forEach(([x,y,r])=>{g.beginPath();g.arc(x,y,r,0,7);g.fill();});
+      g.fillStyle="rgba(255,255,255,.55)";
+      for(let i=0;i<9;i++){g.beginPath();g.arc(640+i*48,980,6,0,7);g.fill();}
+    } else if (mood==="cool"){
+      g.strokeStyle="rgba(255,255,255,.06)"; g.lineWidth=1;
+      for(let x=0;x<=S;x+=60){g.beginPath();g.moveTo(x,0);g.lineTo(x,S);g.stroke();g.beginPath();g.moveTo(0,x);g.lineTo(S,x);g.stroke();}
+      g.fillStyle=M.sub; g.fillRect(pad, 300, 120, 8);
+    } else {
+      [[880,220,320,"rgba(255,255,255,.55)"],[160,880,300,"rgba(214,190,230,.35)"],[980,960,200,"rgba(190,215,245,.45)"]].forEach(([x,y,r,col])=>{
+        const rg=g.createRadialGradient(x,y,0,x,y,r); rg.addColorStop(0,col); rg.addColorStop(1,"rgba(255,255,255,0)");
+        g.fillStyle=rg; g.fillRect(0,0,S,S);
+      });
+    }
+  }
+  g.textBaseline = "alphabetic";
+  g.fillStyle = subInk; g.font = `600 34px "IBM Plex Sans KR", sans-serif`;
+  g.fillText(CAT_LABEL[result.cat] || "이지혜 LAB", pad, 150);
+  let size = 112, lines;
+  do { g.font = `${M.weight} ${size}px ${M.font}, sans-serif`; lines = wrapLines(g, main, S - pad*2); size -= 6; } while ((lines.length > 3 || lines.some(l=>g.measureText(l).width > S-pad*2)) && size > 54);
+  size += 6;
+  const lh = Math.round(size * 1.28);
+  g.font = `400 40px "IBM Plex Sans KR", sans-serif`;
+  const subLines = sub ? wrapLines(g, sub, S - pad*2).slice(0,2) : [];
+  const blockH = lines.length*lh + (subLines.length ? 36 + subLines.length*56 : 0);
+  let y = photo ? (S - 150 - blockH + size) : Math.max(380, (S - blockH)/2 + size*0.7);
+  g.fillStyle = ink; g.font = `${M.weight} ${size}px ${M.font}, sans-serif`;
+  lines.forEach(l=>{ g.fillText(l, pad, y); y += lh; });
+  if (subLines.length){
+    y += 36 - lh + 56; g.fillStyle = subInk; g.font = `400 40px "IBM Plex Sans KR", sans-serif`;
+    subLines.forEach(l=>{ g.fillText(l, pad, y); y += 56; });
+  }
+  g.fillStyle = subInk; g.font = `600 30px "IBM Plex Sans KR", sans-serif`;
+  g.fillText(result.cat==="kpa" ? "마음길연구소 이지혜 소장" : "이지혜 작가", pad, S - 70);
+  return await new Promise(r=>c.toBlob(r, "image/jpeg", 0.92));
+}
+let coverRun = 0;
+async function renderCovers(){
+  if (!result) return;
+  const run = ++coverRun;
+  const mood = MOODS[result.mood] ? result.mood : "cool";
+  $("moods").innerHTML = Object.entries(MOODS).map(([k,v])=>`<button type="button" class="mood${k===mood?" on":""}" data-m="${k}">${v.label}</button>`).join("");
+  const main = (result.cover && result.cover.main) || result.titles[pickedTitle] || "";
+  const sub = (result.cover && result.cover.sub) || "";
+  if (document.activeElement !== $("coverMain")) $("coverMain").value = main;
+  if (document.activeElement !== $("coverSub")) $("coverSub").value = sub;
+  const variants = [{name:"디자인", photo:null}];
+  if (coverAI) variants.push({name:"AI 배경", photo:coverAI});
+  const first = slots.find(s=>s && s.blob && s.kind!=="card");
+  if (first) variants.push({name:"첫 사진 배경", photo:first.blob});
+  const out = [];
+  for (const v of variants){
+    const blob = await drawCover(mood, main, sub, v.photo);
+    if (blob) out.push({name:v.name, blob, url:URL.createObjectURL(blob)});
+  }
+  if (run !== coverRun){ out.forEach(v=>URL.revokeObjectURL(v.url)); return; }
+  coverBlobs.forEach(v=>URL.revokeObjectURL(v.url));
+  coverBlobs = out;
+  const canSave = downloads || !window.claude;
+  $("covers").innerHTML = coverBlobs.map((v,i)=>`<div class="cover"><img src="${v.url}" alt="대표이미지 ${esc(v.name)}"><small>${esc(v.name)} · 1080×1080</small>${canSave ? `<button type="button" class="btn" data-dl="${i}">다운로드</button>` : ""}</div>`).join("");
+  $("aiCoverRow").hidden = !(MODE.server && MODE.cfg.openai);
+}
+$("moods").addEventListener("click", e=>{
+  const m = e.target.closest("[data-m]"); if (!m || !result) return;
+  result.mood = m.dataset.m; renderCovers();
+});
+let coverTimer;
+function onCoverEdit(){
+  if (!result) return;
+  result.cover = { main: $("coverMain").value, sub: $("coverSub").value };
+  clearTimeout(coverTimer); coverTimer = setTimeout(renderCovers, 350);
+}
+$("coverMain").addEventListener("input", onCoverEdit);
+$("coverSub").addEventListener("input", onCoverEdit);
+$("covers").addEventListener("click", async e=>{
+  const b = e.target.closest("[data-dl]"); if (!b) return;
+  const v = coverBlobs[Number(b.dataset.dl)]; if (!v) return;
+  const old = b.textContent;
+  try{ await saveBlob(v.blob, `대표이미지_${v.name.replace(/\s|·/g,"")}.jpg`); b.textContent = "저장됨"; }
+  catch(err){ b.textContent = err?.code==="declined" ? "취소됨" : "길게 눌러 저장해 주세요"; }
+  setTimeout(()=>b.textContent=old, 2200);
+});
+$("aiCover").addEventListener("click", async e=>{
+  if (!result) return;
+  const b = e.currentTarget; b.disabled = true; const old = b.textContent;
+  b.textContent = "그리는 중… (30초~1분)";
+  try{
+    const mood = MOODS[result.mood] ? result.mood : "pastel";
+    const topic = result.titles[pickedTitle];
+    const prompt = `Square background image for a Korean blog cover about: "${topic}". ${MOOD_STYLE[mood]}. Simple composition with calm empty space in the lower half for a title. No text, no letters, no logos, no watermark.`;
+    const res = await api.job("image", { prompt, size:"1024x1024" });
+    coverAI = b64ToBlob(res.b64, "image/png");
+    await renderCovers();
+    $("aiCoverMsg").textContent = "AI 배경 버전을 만들었어요. 마음에 안 들면 한 번 더 눌러 보세요.";
+  }catch(err){ $("aiCoverMsg").textContent = err?.message || "그림을 만들지 못했어요."; }
+  b.disabled = false; b.textContent = old;
+});
+
+/* ---------- 원고 쓰기 ---------- */
+function setStatus(t,err){const s=$("status");s.textContent=t;s.className="status"+(err?" err":"");}
+const ERR = {
+  not_granted:"Claude 사용을 허용해야 원고를 쓸 수 있어요. 페이지를 새로 열고 허용을 눌러 주세요.",
+  rate_limited:"요청이 많아 잠시 쉬어야 해요. 1~2분 뒤 다시 눌러 주세요.",
+  image_rejected:"읽을 수 없는 사진이 있어요. 그 사진을 빼고 다시 눌러 주세요.",
+  images_unavailable:"이 화면에서는 사진을 보낼 수 없어요. 사진을 빼고 테마만으로 써 볼 수 있어요.",
+  invalid_json:"원고 형식이 깨졌어요. 한 번 더 눌러 주세요.",
+  refused:"이 테마로는 글을 쓰기 어려워요. 표현을 바꿔서 다시 시도해 주세요.",
+  session_expired:"로그인이 만료됐어요. 다시 로그인한 뒤 눌러 주세요.",
+  sampling_disabled:"이 계정에서는 Claude 글쓰기를 쓸 수 없어요."
+};
+
+$("go").onclick = async ()=>{
+  const theme = $("theme").value.trim();
+  if(!theme){ setStatus("테마를 한 줄이라도 적어 주세요.", true); $("theme").focus(); return; }
+  if(!MODE.claude && !MODE.server){ setStatus("AI 연결이 없어요. Claude 앱이나 넷리파이 앱에서 열어 주세요.", true); return; }
+  if(MODE.server && !appKey()){ showKeybar("먼저 앱 비밀번호를 넣어 주세요."); return; }
+  const cat = document.querySelector('input[name=cat]:checked').value;
+  const files = photos.map(p=>p.file);
+  const fill = MODE.server && !MODE.claude && (MODE.cfg.pexels || MODE.cfg.openai);
+  const btn=$("go"); btn.disabled=true; btn.textContent="쓰는 중…";
+  let lockOut = false;
+  try{
+    const place = $("place").value.trim();
+    const links = $("links").value.split("\n").map(l=>{
+      const m = l.match(/https?:\/\/\S+/);
+      return m ? {url:m[0], label:l.replace(m[0],"").trim()} : null;
+    }).filter(Boolean).slice(0,5);
+    let data, nUser;
+    if (MODE.claude){
+      const imgs = maxImgs ? files : [];
+      nUser = imgs.length;
+      const opts = { cache:false };
+      let descs = "";
+      if (imgs.length > maxImgs){
+        const lines = [];
+        for (let i = 0; i < imgs.length; i += maxImgs){
+          const chunk = imgs.slice(i, i + maxImgs);
+          setStatus(`사진 ${i+1}~${i+chunk.length}번을 살펴보는 중… (전체 ${imgs.length}장)`);
+          const arr = await sample.json(`블로그 글감으로 쓸 사진이야. 첨부한 사진 ${chunk.length}장은 순서대로 사진 ${i+1}번~${i+chunk.length}번이야. 각 사진에 실제로 보이는 것만(음식, 글씨, 장소 분위기, 사물 등) 1~2문장 한국어로 설명해 줘. 다른 말 없이 JSON 배열만: [{"n":${i+1},"desc":"설명"}]`, { images: chunk });
+          (Array.isArray(arr) ? arr : []).forEach(o=>{ if (o && o.desc) lines.push(`${o.n}번: ${o.desc}`); });
+        }
+        descs = lines.join("\n");
+        setStatus(`사진 ${imgs.length}장을 다 봤어요. 이제 원고를 쓰는 중…`);
+      } else {
+        if (imgs.length) opts.images = imgs;
+        setStatus("사진과 테마를 읽고 원고를 쓰고 있어요. 30초~1분 정도 걸려요.");
+      }
+      data = await sample.json(buildPrompt(cat, theme, $("kw").value.trim(), nUser, place, links, descs, false), opts);
+    } else {
+      nUser = files.length;
+      setStatus(nUser ? `사진 ${nUser}장을 올리는 중…` : "원고를 쓰기 시작했어요.");
+      const keys = [];
+      for (const f of files) keys.push(await api.upload(f));
+      const text = await api.job("write", { prompt: buildPrompt(cat, theme, $("kw").value.trim(), nUser, place, links, "", fill), imageKeys: keys },
+        i => setStatus(`원고를 쓰는 중… ${Math.round((i+2)*3)}초 (보통 1~2분)`));
+      data = parseLoose(text);
+    }
+    if(!data || typeof data.body!=="string" || !Array.isArray(data.titles)) throw {code:"invalid_json"};
+    const ideas = fill ? (Array.isArray(data.photoIdeas) ? data.photoIdeas : [])
+      .filter(p=>p && Number(p.slot) > nUser).sort((a,b)=>a.slot-b.slot).slice(0,5) : [];
+    const extra = new Set(ideas.map(p=>Number(p.slot)));
+    const datas = await Promise.all(photos.slice(0,nUser).map(p=>fileToDataURL(p.file)));
+    slots = photos.slice(0,nUser).map((p,i)=>({ kind:"mine", blob:p.file, url:p.url, data:datas[i] }));
+    coverAI = null;
+    result = {
+      cat,
+      titles: data.titles.slice(0,3).map(String),
+      keywords: (data.keywords||[]).slice(0,3).map(String),
+      body: ensurePhotos(String(data.body), nUser, extra),
+      hashtags: (data.hashtags||[]).slice(0,15).map(String),
+      mood: MOODS[data.mood] ? data.mood : (cat==="body"||cat==="insure" ? "cool" : cat==="food"||cat==="daily" ? "bright" : "pastel"),
+      cover: data.cover && data.cover.main ? {main:String(data.cover.main), sub:String(data.cover.sub||"")} : null,
+      userPhotos: nUser,
+      place, links
+    };
+    ideas.forEach(idea=>{ slots[Number(idea.slot)-1] = { kind:"empty", idea }; });
+    pickedTitle=0; render(false); renderCovers();
+    store.set("lab-last", result);
+    if (ideas.length && MODE.cfg.pexels){
+      setStatus("빈 사진 자리에 어울리는 무료 사진을 찾는 중…");
+      await fillSlots(ideas); render(false); renderCovers();
+    }
+    setStatus("완성! 대표이미지는 다운로드하고, 본문은 '한 번에 복사'로 네이버에 붙여 넣으세요.");
+  }catch(e){
+    if(e?.code==="cancelled"){ setStatus(""); }
+    else setStatus(ERR[e?.code] || e?.message || "잠깐 연결이 끊겼어요. 다시 눌러 주세요.", true);
+    lockOut = ["not_granted","sampling_disabled"].includes(e?.code);
+  }finally{
+    btn.textContent="원고 쓰기";
+    btn.disabled = lockOut;
+  }
+};
+
+/* ---------- 카드뉴스 원고함 (GitHub 저장소 blog/posts) ---------- */
+let inboxItems = [];
+const RAW = (path) => `https://raw.githubusercontent.com/${REPO}/main/${path}`;
+function inboxDate(id){
+  const m = id.match(/^(\d{4})-(\d{2})-(\d{2})(?:-(\w+))?/); if (!m) return id;
+  const wd = {mon:"월",tue:"화",wed:"수",thu:"목",fri:"금",sat:"토",sun:"일"}[m[4]] || "";
+  return `${Number(m[2])}월 ${Number(m[3])}일${wd ? ` (${wd})` : ""}`;
+}
+function parsePostTxt(txt){
+  const k = txt.indexOf("===");
+  const head = k>=0 ? txt.slice(0,k) : "", body = k>=0 ? txt.slice(k+3) : txt;
+  const meta = {};
+  head.split("\n").forEach(l=>{ const i=l.indexOf(": "); if (i>0) meta[l.slice(0,i).trim()] = l.slice(i+2).trim(); });
+  return { meta, body };
+}
+function splitSentences(t){
+  const out = []; let last = 0;
+  const re = /[.?!][”"’']?\s+/g; let m;
+  while ((m = re.exec(t))){
+    const seg = t.slice(last, m.index + m[0].length);
+    if ((seg.match(/"/g)||[]).length % 2) continue;
+    out.push(seg.trim()); last = m.index + m[0].length;
+  }
+  out.push(t.slice(last).trim());
+  return out.filter(Boolean);
+}
+/* 원고 형식(## 소제목, - 목록, [3]=카드 3번)을 블로그 붙여넣기 형식으로 */
+function txtToBody(body){
+  const out = [];
+  const lines = body.replace(/\r/g,"").trim().split("\n");
+  for (const raw of lines){
+    const l = raw.replace(/\*\*(.+?)\*\*/g,"$1");
+    const t = l.trim();
+    const m = t.match(/^\[(\d+)\]$/);
+    if (m){ out.push(`[사진${Number(m[1])}]`, ""); continue; }
+    if (!t){ if (out.length && out[out.length-1] !== "") out.push(""); continue; }
+    if (t.startsWith("### ")){ out.push("▷ " + t.slice(4), ""); continue; }
+    if (t.startsWith("## ")){ if (out.length && out[out.length-1] !== "") out.push(""); out.push("▶ " + t.slice(3), ""); continue; }
+    if (t.startsWith("- ")){ out.push("· " + t.slice(2)); continue; }
+    if (/^\s{2,}/.test(l) && out.length && out[out.length-1].startsWith("· ")){ out[out.length-1] += " " + t; continue; }
+    const parts = t.includes(" / ") ? t.split(" / ") : splitSentences(t);
+    parts.forEach(p=>out.push(p.trim()));
+    out.push("");
+  }
+  return out.join("\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+async function loadInbox(){
+  $("inboxStatus").textContent = "원고함을 불러오는 중…";
+  try{
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/blog/posts?ref=main`, { cache:"no-store" });
+    if (!r.ok) throw new Error("GitHub " + r.status);
+    const list = (await r.json()).filter(f=>/\.txt$/.test(f.name)).sort((a,b)=>b.name.localeCompare(a.name)).slice(0, 24);
+    inboxItems = await Promise.all(list.map(async f=>{
+      const id = f.name.replace(/\.txt$/,"");
+      try{
+        const txt = await (await fetch(RAW(`blog/posts/${f.name}`) + `?v=${f.sha.slice(0,8)}`)).text();
+        const { meta } = parsePostTxt(txt);
+        return { id, title: meta.title || id, txt };
+      }catch{ return { id, title:id, txt:"" }; }
+    }));
+    $("inboxStatus").textContent = inboxItems.length ? "" : "아직 원고가 없어요. 주간 카드뉴스 작업이 끝나면 여기에 올라와요.";
+    renderInboxList();
+  }catch(err){
+    $("inboxStatus").textContent = "원고함을 불러오지 못했어요. 잠시 뒤 새로고침을 눌러 주세요. (" + (err?.message||"") + ")";
+  }
+}
+function renderInboxList(){
+  const posted = store.get("lab-posted", {}), seen = store.get("lab-seen", {});
+  const fresh = inboxItems.filter(it=>!seen[it.id] && !posted[it.id]).length;
+  $("inboxCount").hidden = !fresh; $("inboxCount").textContent = fresh;
+  $("inbox").innerHTML = inboxItems.map(it=>`<li tabindex="0" data-id="${esc(it.id)}" class="${result && result.id===it.id ? "on" : ""}">
+    <span class="d">${esc(inboxDate(it.id))} ${posted[it.id] ? '<span class="pill done">올림</span>' : !seen[it.id] ? '<span class="pill new">새 원고</span>' : ""}</span>
+    <span class="t">${esc(it.title)}</span></li>`).join("");
+}
+async function openInbox(id){
+  const it = inboxItems.find(x=>x.id===id); if (!it || !it.txt) return;
+  const { meta, body } = parsePostTxt(it.txt);
+  const seen = store.get("lab-seen", {}); seen[id] = Date.now(); store.set("lab-seen", seen);
+  const text = txtToBody(body);
+  const nums = [...new Set([...text.matchAll(/\[사진(\d+)\]/g)].map(m=>Number(m[1])))];
+  slots = [];
+  nums.forEach(n=>{ slots[n-1] = { kind:"card", url: RAW(`out/${id}/card_${String(n).padStart(2,"0")}.png`), credit:"" }; });
+  coverAI = null;
+  const title = meta.title || it.title;
+  result = {
+    cat:"kpa", source:"inbox", id,
+    titles:[title],
+    keywords:(meta.keywords||"").split(",").map(s=>s.trim()).filter(Boolean),
+    body:text,
+    hashtags:(meta.tags||"").split(/\s+/).map(s=>s.replace(/^#/,"")).filter(Boolean),
+    mood:"pastel",
+    cover:{ main: title.split("|")[0].trim(), sub: (title.split("|")[1]||"").trim() },
+    userPhotos: nums.length
+  };
+  pickedTitle = 0; render(false); renderInboxList(); renderCovers();
+  if (matchMedia("(max-width:860px)").matches) document.querySelector('[aria-label="완성 원고"]').scrollIntoView({behavior:"smooth"});
+  // 붙여넣기용으로 카드 이미지를 내려받아 둠
+  $("inboxStatus").textContent = "카드 이미지를 준비하는 중…";
+  let ok = 0;
+  await Promise.all(nums.map(async n=>{
+    try{
+      const r = await fetch(slots[n-1].url); if (!r.ok) throw 0;
+      const blob = await toJpeg(await r.blob(), 1080);
+      if (result.id !== id || !blob) return;
+      slots[n-1] = { kind:"card", blob, url: URL.createObjectURL(blob), data: await fileToDataURL(blob), credit:"" };
+      ok++;
+    }catch{}
+  }));
+  if (result.id !== id) return;
+  render(false);
+  $("inboxStatus").textContent = ok===nums.length ? "카드 이미지까지 준비됐어요. '한 번에 복사'로 붙여 넣으세요." : `카드 이미지 ${nums.length-ok}장을 불러오지 못했어요. 새로고침 뒤 다시 열어 주세요.`;
+}
+$("inbox").addEventListener("click", e=>{ const li = e.target.closest("li[data-id]"); if (li) openInbox(li.dataset.id); });
+$("inbox").addEventListener("keydown", e=>{ if ((e.key==="Enter"||e.key===" ") && e.target.dataset.id){ e.preventDefault(); openInbox(e.target.dataset.id); } });
+$("inboxReload").onclick = loadInbox;
+
+/* ---------- 화면 전환 ---------- */
+function showTab(which){
+  const inbox = which==="inbox";
+  $("writePanel").hidden = inbox; $("inboxPanel").hidden = !inbox;
+  $("tabWrite").classList.toggle("on", !inbox); $("tabInbox").classList.toggle("on", inbox);
+  if (inbox && !inboxItems.length) loadInbox();
+  try{ history.replaceState(null, "", inbox ? "#inbox" : "#write"); }catch{}
+}
+$("tabWrite").onclick = ()=>showTab("write");
+$("tabInbox").onclick = ()=>showTab("inbox");
+
+function showKeybar(msg){ $("keybar").hidden = false; $("keymsg").textContent = msg || ""; $("appKey").focus(); }
+$("keybar").addEventListener("submit", async e=>{
+  e.preventDefault();
+  store.set("lab-key", $("appKey").value.trim());
+  try{
+    const r = await fetch("/api/health?auth=1", { headers: hdr() });
+    const j = await r.json();
+    if (j.authOk){ $("keybar").hidden = true; $("appKey").value=""; setStatus("비밀번호를 저장했어요."); }
+    else $("keymsg").textContent = j.password ? "비밀번호가 맞지 않아요." : "넷리파이에 APP_PASSWORD를 먼저 설정해 주세요.";
+  }catch{ $("keymsg").textContent = "서버에 연결하지 못했어요."; }
+});
+
+function updateModeline(){
+  const ml = $("modeline");
+  if (MODE.claude) ml.textContent = "AI: Claude 연결됨";
+  else if (MODE.server){
+    const c = MODE.cfg;
+    ml.textContent = `AI: 넷리파이 서버 · 글쓰기 ${c.anthropic?"켜짐":"꺼짐"} · 무료사진 ${c.pexels?"켜짐":"꺼짐"} · AI그림 ${c.openai?"켜짐":"꺼짐"}`;
+    if (!c.anthropic) setStatus("넷리파이 환경변수에 ANTHROPIC_API_KEY를 넣어야 글쓰기가 켜져요.", true);
+  } else ml.textContent = "AI 연결 없음";
+  $("fillNote").hidden = !(MODE.server && !MODE.claude && (MODE.cfg.pexels || MODE.cfg.openai));
+}
+
+/* ---------- 시작 ---------- */
+(async ()=>{
+  // 1) Claude 안에서 열렸는지
+  if (window.claude){
+    try{
+      sample = await window.claude.use("sample");
+      if (sample){
+        MODE.claude = true;
+        const lim = await sample.limits().catch(()=>null);
+        if (lim?.images) maxImgs = lim.images.maxCount;
+        else $("imgLimit").textContent = "이 화면에서는 사진 분석이 꺼져 있어요. 테마만으로 써 드려요.";
+      }
+    }catch{}
+    try{ downloads = await window.claude.use("downloads"); }catch{ downloads = null; }
+  }
+  // 2) 넷리파이 앱인지
+  if (!window.claude){
+    try{
+      const r = await fetch("/api/health", { cache:"no-store" });
+      if (r.ok){ const j = await r.json(); if (j.app === "blog-gongbang"){ MODE.server = true; MODE.cfg = j; } }
+    }catch{}
+  }
+  updateModeline();
+  if (MODE.server){
+    $("tabInbox").hidden = false;
+    if (!appKey()) showKeybar("처음 한 번만 넣으면 이 기기에 저장돼요.");
+    loadInbox();
+    if (location.hash === "#inbox") showTab("inbox");
+  }
+  renderCovers();
+})();
+
+(function(){
+  const saved = store.get("lab-last", null);
+  if(saved && saved.body && FOOTERS[saved.cat]){ result=saved; render(false); $("badge").textContent="지난 원고"; }
+  else { result=EXAMPLE; render(true); }
+})();
+</script>
+</body></html>
