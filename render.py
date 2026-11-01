@@ -228,6 +228,48 @@ def render_slide(slide, th, W, H, page=None, total=None, footer=True, band=None)
                 y += 62
             y += 22
 
+    if kind == "vs":
+        # 'A vs B 대화 비교': 같은 상황 두 장면(위: a, 아래: b), 장면마다 말풍선 2개 + 하단 한 줄 요약
+        y -= 20
+        tagf = font(SANS["Bold"], 38 if tall else 34)
+        bubf = font(SANS["Regular"], 46 if tall else 40)
+        blh = 62 if tall else 54
+        pad = 28 if tall else 22
+        bub_max = int(max_w * 0.92)
+        light = tuple(min(255, c + 12) for c in th["bg"]) if sum(th["bg"]) < 300 else (255, 255, 255)
+        tint = tuple(int(c * 0.22 + b * 0.78) for c, b in zip(th["accent"], th["bg"]))
+        grey = tuple(int(c * 0.10 + b * 0.90) for c, b in zip(th["muted"], th["bg"]))
+        for key, tag_default, good in (("a", "대화가 편한 사람", True), ("b", "대화가 피곤한 사람", False)):
+            sc = slide.get(key)
+            if not sc:
+                continue
+            tag = slide.get(key + "_tag", tag_default)
+            tw = d.textlength(tag, font=tagf)
+            th_ = 62 if tall else 56
+            d.rounded_rectangle((M, y, M + tw + 48, y + th_), radius=th_ // 2,
+                                fill=th["accent"] if good else th["muted"])
+            d.text((M + 24, y + th_ // 2), tag, font=tagf, fill=th.get("button_text", (255, 255, 255)), anchor="lm")
+            y += th_ + (18 if tall else 14)
+            for j, line in enumerate(sc):
+                wl = wrap(d, line, bubf, bub_max - 2 * pad)
+                bw = max(d.textlength(w, font=bubf) for w in wl) + 2 * pad
+                bh = len(wl) * blh + 2 * pad - (blh - (46 if tall else 40)) // 2
+                right = j % 2 == 1
+                x0 = W - M - bw if right else M
+                fill = (tint if good else grey) if right else light
+                d.rounded_rectangle((x0, y, x0 + bw, y + bh), radius=26, fill=fill)
+                ty = y + pad - 2
+                for w in wl:
+                    d.text((x0 + pad, ty), w, font=bubf, fill=th["title"] if right else th["body"])
+                    ty += blh
+                y += bh + (14 if tall else 12)
+            y += 16 if tall else 12
+        if slide.get("summary"):
+            sf = font(SANS["SemiBold"], 44 if tall else 40)
+            for wl in wrap(d, "→ " + slide["summary"], sf, max_w):
+                d.text((M, y), wl, font=sf, fill=th["accent"])
+                y += 60 if tall else 54
+
     if slide.get("outline_button"):
         y += 40
         bfnt = font(SANS["SemiBold"], 38 if tall else 34)
@@ -297,7 +339,8 @@ def make_shorts(frames_dir, frames, out_path):
 
 
 def slide_text(s):
-    return " ".join(s.get("title", []) + s.get("sub", []) + s.get("body", []) + s.get("items", []))
+    return " ".join(s.get("title", []) + s.get("sub", []) + s.get("body", []) + s.get("items", [])
+                    + s.get("a", []) + s.get("b", []) + ([s["summary"]] if s.get("summary") else []))
 
 
 def render_post(post, out_root):
