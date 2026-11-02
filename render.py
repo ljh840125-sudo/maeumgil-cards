@@ -139,6 +139,10 @@ def draw_art(img, kind, th, box):
 
 
 def render_slide(slide, th, W, H, page=None, total=None, footer=True, band=None):
+    return _render_slide_v1(slide, th, W, H, page=page, total=total, footer=footer, band=band)
+
+
+def _render_slide_v1(slide, th, W, H, page=None, total=None, footer=True, band=None):
     img = Image.new("RGB", (W, H), th["bg"])
     if th.get("blobs"):
         from PIL import ImageFilter
@@ -344,7 +348,14 @@ def slide_text(s):
 
 
 def render_post(post, out_root):
-    th = THEMES[post.get("theme") or SERIES_THEME.get(post.get("series"), "warm")]
+    th_name = post.get("theme") or SERIES_THEME.get(post.get("series"), "warm")
+    th = THEMES[th_name]
+    if post.get("design") == "v2" and th_name != "bold":
+        import render_v2
+        dark = th_name in ("night", "dark")
+        rs = lambda s, th, W, H, **k: render_v2.render_slide_v2(s, th, W, H, dark=dark, **k)
+    else:
+        rs = _render_slide_v1
     out = os.path.join(out_root, post["id"])
     os.makedirs(out, exist_ok=True)
     slides = list(post["slides"])
@@ -355,11 +366,15 @@ def render_post(post, out_root):
                "body": n.get("body", []), "outline_button": n.get("button", "팔로우하고 다음 편 받기"), "shorts": True}
         slides.append(nxt)
     booking = dict(BOOKING, **post.get("booking", {}))
+    if post.get("design") == "v2":
+        booking.setdefault("chips", ["TCI 기질검사", "1:1 해석 상담", "커플·부부 상담", "애착유형 상담"])
+        booking["label"] = booking.get("label", "마음길연구소")
+        booking.setdefault("icon", "heart")
     slides.append(booking)
     total = len(slides)
     files = []
     for i, s in enumerate([] if post.get("shorts_only") else slides, 1):
-        img = render_slide(s, th, 1080, 1350, page=i if total > 1 else None, total=total if total > 1 else None,
+        img = rs(s, th, 1080, 1350, page=i if total > 1 else None, total=total if total > 1 else None,
                            band=post.get("band") if s.get("type") != "booking" else None)
         p = os.path.join(out, f"card_{i:02d}.png")
         img.save(p, optimize=True)
@@ -367,11 +382,11 @@ def render_post(post, out_root):
 
     frames = []
     for i, s in enumerate([s for s in post["slides"] if s.get("shorts")] + ([nxt] if nxt else []), 1):
-        img = render_slide(s, th, 1080, 1920)
+        img = rs(s, th, 1080, 1920)
         p = os.path.join(out, f"frame_{i:02d}.png")
         img.save(p)
         frames.append((p, slide_text(s)))
-    end = render_slide(booking, th, 1080, 1920)
+    end = rs(booking, th, 1080, 1920)
     endp = os.path.join(out, f"frame_{len(frames) + 1:02d}.png")
     end.save(endp)
     frames.append((endp, slide_text(booking)))
@@ -386,6 +401,8 @@ def main():
     data = json.load(open(src, encoding="utf-8"))
     out_root = os.path.join(ROOT, "out")
     for post in data["posts"]:
+        if data.get("design") and "design" not in post:
+            post["design"] = data["design"]
         print(f"▶ {post['id']} ({post['series']})")
         render_post(post, out_root)
     print("done")
