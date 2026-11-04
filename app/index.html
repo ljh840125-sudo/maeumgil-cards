@@ -142,6 +142,18 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .post .slotbtns button{font:500 .76rem var(--body);padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--accent);cursor:pointer}
 .post .ownbox{display:block;border:1.5px dashed var(--line);border-radius:8px;padding:10px 12px;max-width:420px;margin:6px 0}
 .post .ownbox small{display:block;color:var(--muted);font-size:.84rem;line-height:1.5}
+.mflow .steps{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:12px}
+.mflow .steps li{padding-left:2px}
+.mflow .steps b{display:block}
+.mflow .steps span{display:block;font-size:.85rem;color:var(--muted);margin:2px 0 6px}
+.mflow .steps .btn{padding:9px 14px}
+@media (pointer:fine){.mflow{display:none}}
+@media (pointer:coarse){.copyall{display:none}}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet-in{background:var(--paper);color:var(--ink);border-radius:12px;padding:16px;width:100%;max-width:560px;display:flex;flex-direction:column;gap:10px}
+.sheet-in p{margin:0;font-size:.92rem}
+.sheet-in textarea{min-height:40vh;font-size:16px}
 .ai-cover{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 </style>
 
@@ -274,11 +286,30 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
         <div class="chips" id="tags"></div>
       </div>
 
+      <div class="block mflow" id="mflow">
+        <h2>휴대폰으로 올리기</h2>
+        <ol class="steps">
+          <li><b>사진 저장</b><span>대표이미지와 본문 사진을 번호 순서대로 휴대폰에 저장해요.</span>
+            <button type="button" class="btn ghost" id="savePhotos">사진 저장하기</button></li>
+          <li><b>글 복사</b><span>제목·본문·태그가 복사돼요. 본문에 [사진1] 같은 표시가 남아 있어요.</span>
+            <button type="button" class="btn ghost" id="copyMobile">글 복사하기</button></li>
+          <li><b>네이버 블로그 앱에 붙여넣기</b><span>[사진1] 자리마다 같은 번호 사진을 넣고, 표시 글자는 지워 주세요. 첫 장(00번)은 대표이미지예요.</span></li>
+        </ol>
+        <div class="status" id="mflowStatus" role="status"></div>
+      </div>
+
       <div class="copyall">
         <button class="btn" id="copyAll">제목+본문(사진 포함)+태그 한 번에 복사</button>
       </div>
       <textarea class="hidden-copy" id="fallback" aria-hidden="true" tabindex="-1"></textarea>
       <div id="richCopy" aria-hidden="true"></div>
+      <div class="sheet" id="copySheet" hidden role="dialog" aria-label="글 복사">
+        <div class="sheet-in">
+          <p><b>자동 복사가 막혔어요.</b> 아래 글을 길게 눌러 <b>전체 선택 → 복사</b>를 눌러 주세요.</p>
+          <textarea id="copyArea"></textarea>
+          <button type="button" class="btn" id="copySheetClose">닫기</button>
+        </div>
+      </div>
     </section>
   </div>
 </div>
@@ -646,13 +677,38 @@ function textToHtml(text){
   }).join("");
 }
 function plainText(text){ return text.replace(/^\s*\[사진\s?\d+\]\s*$/gm, (m)=>{ const n=Number(m.match(/\d+/)[0]); return slots[n-1]?.data ? "" : m.trim(); }).replace(/\n{3,}/g,"\n\n"); }
+const TOUCH = matchMedia("(pointer:coarse)").matches;
+/* 글자 복사: 클립보드 API → 화면 밖 텍스트 선택 복사 → 직접 복사 창 */
+function openCopySheet(text){
+  $("copyArea").value = text; $("copySheet").hidden = false;
+  const a = $("copyArea"); a.focus(); try{ a.setSelectionRange(0, text.length); }catch{ a.select(); }
+}
+$("copySheetClose").onclick = ()=>{ $("copySheet").hidden = true; };
+$("copySheet").addEventListener("click", e=>{ if (e.target.id==="copySheet") $("copySheet").hidden = true; });
+function execCopyText(text){
+  const f = $("fallback");
+  f.value = text; f.removeAttribute("aria-hidden");
+  f.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;font-size:16px";
+  f.readOnly = false; f.focus(); f.select();
+  try{ f.setSelectionRange(0, text.length); }catch{}
+  let ok = false; try{ ok = document.execCommand("copy"); }catch{}
+  f.blur(); f.style.cssText = ""; f.setAttribute("aria-hidden","true");
+  return ok;
+}
 async function copy(text, btn){
   const old = btn.textContent;
-  try{ await navigator.clipboard.writeText(text); btn.textContent="복사됨"; }
-  catch{ const f=$("fallback"); f.value=text; f.select(); btn.textContent="선택됨 — 길게 눌러 복사"; }
-  setTimeout(()=>btn.textContent=old,1800);
+  let ok = false;
+  if (navigator.clipboard?.writeText){
+    try{ await navigator.clipboard.writeText(text); ok = true; }catch{}
+  }
+  if (!ok) ok = execCopyText(text);
+  if (ok) btn.textContent = "복사됨";
+  else { btn.textContent = "직접 복사해 주세요"; openCopySheet(text); }
+  setTimeout(()=>btn.textContent=old, 2000);
+  return ok;
 }
 async function copyRich(text, btn){
+  if (TOUCH) return copy(text, btn);   // 휴대폰은 사진째 복사가 안 됨 → 글만
   const old = btn.textContent;
   const html = textToHtml(text), plain = plainText(text);
   const hasImg = /<img /.test(html);
@@ -674,13 +730,56 @@ async function copyRich(text, btn){
     }catch{}
   }
   if (!ok){ try{ await navigator.clipboard.writeText(plain); ok = "text"; }catch{} }
-  btn.textContent = ok===true ? (hasImg ? "사진까지 복사됨" : "복사됨") : ok==="text" ? "글자만 복사됨" : "복사 안 됨";
+  if (!ok){ openCopySheet(plain); ok = "sheet"; }
+  btn.textContent = ok===true ? (hasImg ? "사진까지 복사됨" : "복사됨") : ok==="text" ? "글자만 복사됨" : "직접 복사해 주세요";
   setTimeout(()=>btn.textContent=old, 2200);
 }
 const fullAll = ()=> result.titles[pickedTitle]+"\n\n"+fullBody()+"\n\n"+tagLine();
 $("copyBody").onclick = e=>copyRich(fullBody(), e.currentTarget);
 $("copyTags").onclick = e=>copy(tagLine(), e.currentTarget);
 $("copyAll").onclick = e=>copyRich(fullAll(), e.currentTarget);
+$("copyMobile").onclick = async e=>{
+  const ok = await copy(fullAll(), e.currentTarget);
+  if (ok) $("mflowStatus").textContent = "복사됐어요. 네이버 블로그 앱 글쓰기에서 길게 눌러 '붙여넣기' 하세요.";
+};
+
+/* 휴대폰: 대표이미지 + 본문 사진을 번호 순서대로 저장 (공유 → 갤러리·네이버 블로그 앱) */
+function photoFiles(){
+  const files = [];
+  if (coverBlobs[0]) files.push(new File([coverBlobs[0].blob], "00_대표이미지.jpg", {type:"image/jpeg"}));
+  const used = [...new Set([...result.body.matchAll(/\[사진\s?(\d+)\]/g)].map(m=>Number(m[1])))].sort((a,b)=>a-b);
+  used.forEach(n=>{
+    const sl = slots[n-1];
+    if (sl && sl.blob) files.push(new File([sl.blob], `${String(n).padStart(2,"0")}_사진${n}.jpg`, {type:"image/jpeg"}));
+  });
+  return files;
+}
+$("savePhotos").onclick = async e=>{
+  const btn = e.currentTarget, msg = $("mflowStatus");
+  const files = photoFiles();
+  if (!files.length){ msg.textContent = "저장할 사진이 없어요. 원고를 쓴 뒤 다시 눌러 주세요."; return; }
+  const missing = (result.body.match(/\[사진\s?\d+\]/g)||[]).length - (files.length - (coverBlobs[0] ? 1 : 0));
+  btn.disabled = true;
+  try{
+    if (!window.claude && navigator.canShare && navigator.canShare({ files })){
+      await navigator.share({ files, title: result.titles[pickedTitle] });
+      msg.textContent = `사진 ${files.length}장을 보냈어요. '갤러리에 저장'이나 '네이버 블로그'를 고르면 돼요.`;
+    } else if (downloads){
+      let n = 0;
+      for (const f of files){ msg.textContent = `저장 중… ${n+1}/${files.length} (저장 창에서 확인을 눌러 주세요)`; await downloads.save({ filename: f.name, data: f }); n++; }
+      msg.textContent = `사진 ${n}장을 저장했어요. 갤러리의 '다운로드' 폴더에 있어요.`;
+    } else if (!window.claude){
+      for (const f of files){ await saveBlob(f, f.name); await sleep(500); }
+      msg.textContent = `사진 ${files.length}장을 내려받았어요. 갤러리의 '다운로드' 폴더에 있어요.`;
+    } else {
+      msg.textContent = "이 화면에서는 저장이 막혀 있어요. 본문의 사진을 하나씩 길게 눌러 '이미지 저장'을 해 주세요.";
+    }
+    if (missing > 0) msg.textContent += ` 빈 사진 자리 ${missing}곳은 직접 찍은 사진으로 채워 주세요.`;
+  }catch(err){
+    msg.textContent = err?.name==="AbortError" || err?.code==="declined" ? "저장을 멈췄어요. 다시 누르면 처음부터 저장해요." : "저장하지 못했어요. 본문의 사진을 길게 눌러 '이미지 저장'을 해 주세요.";
+  }
+  btn.disabled = false;
+};
 
 /* ---------- 파일 저장 ---------- */
 async function saveBlob(blob, filename){
