@@ -54,6 +54,17 @@ BOOKING = {
     "button": "프로필 링크 → 네이버 예약",
 }
 
+# v2 디자인 시리즈별 색 (2026-11-05 사용자 지적: 피드에서 색이 다 똑같아 보임 → 종이·카드·포인트 모두 확실히 다르게)
+V2_COLORS = {
+    "sage":   {"paper": (204, 224, 196), "card": (238, 246, 233), "ink": (36, 60, 42), "body": (70, 92, 74), "muted": (122, 142, 122), "accent": (74, 124, 78)},
+    "rose":   {"paper": (244, 202, 218), "card": (253, 236, 242), "ink": (82, 36, 58), "body": (118, 76, 96), "muted": (166, 126, 146), "accent": (184, 72, 118)},
+    "sky":    {"paper": (196, 220, 244), "card": (236, 244, 252), "ink": (30, 50, 84), "body": (66, 88, 120), "muted": (120, 140, 168), "accent": (52, 102, 170)},
+    "note":   {"paper": (234, 214, 180), "card": (250, 242, 226), "ink": (62, 46, 30), "body": (100, 82, 62), "muted": (150, 132, 108), "accent": (170, 92, 44)},
+    "warm":   {"paper": (250, 206, 180), "card": (255, 240, 228), "ink": (86, 46, 36), "body": (122, 84, 72), "muted": (170, 130, 116), "accent": (210, 100, 76)},
+    "butter": {"paper": (250, 226, 138), "card": (255, 248, 216), "ink": (78, 56, 20), "body": (112, 90, 52), "muted": (160, 138, 96), "accent": (196, 116, 12)},
+    "lilac":  {"paper": (218, 206, 242), "card": (244, 239, 252), "ink": (56, 40, 92), "body": (90, 76, 126), "muted": (140, 128, 170), "accent": (118, 84, 186)},
+}
+
 SERIES_THEME = {
     "기질 해부실": "sage",
     "궁합 연구소": "rose",
@@ -64,6 +75,7 @@ SERIES_THEME = {
     "1분 셀프 체크": "butter",
     "일요일 밤 마인드셋": "night",
     "일요일 밤 처방": "night",
+    "관계 회복 수업": "lilac",
 }
 
 _font_cache = {}
@@ -349,10 +361,11 @@ def slide_text(s):
 
 def render_post(post, out_root):
     th_name = post.get("theme") or SERIES_THEME.get(post.get("series"), "warm")
-    th = THEMES[th_name]
+    th = THEMES.get(th_name) or dict(THEMES["warm"], **V2_COLORS.get(th_name, {}))
     if post.get("design") == "v2" and th_name != "bold":
         import render_v2
         dark = th_name in ("night", "dark")
+        th = dict(th, **V2_COLORS.get(th_name, {}))
         rs = lambda s, th, W, H, **k: render_v2.render_slide_v2(s, th, W, H, dark=dark, **k)
     else:
         rs = _render_slide_v1

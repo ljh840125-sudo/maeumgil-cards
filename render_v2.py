@@ -53,11 +53,12 @@ def palette(th, dark=False):
         p["leaf"] = mix(p["paper"], (120, 140, 190), 0.25)
         p["bubble"] = mix(p["card"], (255, 255, 255), 0.12)
     else:
-        p = {"paper": (247, 242, 233), "card": (255, 252, 246), "ink": (54, 48, 46), "body": (98, 90, 86),
-             "muted": (156, 146, 138), "accent": acc}
+        p = {"paper": th.get("paper", (247, 242, 233)), "card": th.get("card", (255, 252, 246)),
+             "ink": th.get("ink", (54, 48, 46)), "body": th.get("body", (98, 90, 86)) if "paper" in th else (98, 90, 86),
+             "muted": th.get("muted", (156, 146, 138)) if "paper" in th else (156, 146, 138), "accent": acc}
         p["tint"] = mix(p["card"], acc, 0.16)
         p["grey"] = mix(p["card"], (120, 112, 104), 0.10)
-        p["leaf"] = mix(p["paper"], (122, 150, 112), 0.35)
+        p["leaf"] = mix(p["paper"], acc, 0.30)
         p["bubble"] = (255, 255, 255)
     p["on_accent"] = th.get("button_text", (255, 255, 255))
     return p
