@@ -154,6 +154,38 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .sheet-in{background:var(--paper);color:var(--ink);border-radius:12px;padding:16px;width:100%;max-width:560px;display:flex;flex-direction:column;gap:10px}
 .sheet-in p{margin:0;font-size:.92rem}
 .sheet-in textarea{min-height:40vh;font-size:16px}
+.kwview{margin-bottom:20px}
+.kwform{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}
+.kwform .btn{width:auto}
+@media (max-width:720px){.kwform{grid-template-columns:minmax(0,1fr)}.kwform .btn{width:100%}}
+.kwhist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.kwhist button{font:500 .78rem var(--body);padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.kwtable-wrap{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:8px}
+.kwtable{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums;min-width:560px}
+.kwtable th{font:600 .74rem var(--mono);letter-spacing:.04em;color:var(--muted);text-align:left;padding:9px 10px;background:var(--bg);border-bottom:1px solid var(--line)}
+.kwtable td{padding:9px 10px;border-bottom:1px solid var(--line)}
+.kwtable tr:last-child td{border-bottom:0}
+.kwtable td.n{text-align:right}
+.kwtable tr.on td{background:var(--accent-soft)}
+.kwtable .k{font-weight:600}
+.kwtable button{font:600 .78rem var(--body);padding:4px 10px;border-radius:999px;border:1px solid var(--accent);background:var(--paper);color:var(--accent);cursor:pointer;white-space:nowrap}
+.g{font:600 .72rem var(--body);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.g-황금{background:#f7e3a4;color:#6b4d00}.g-좋음{background:var(--accent-soft);color:var(--accent)}
+.g-보통{background:var(--bg);color:var(--muted);border:1px solid var(--line)}.g-어려움,.g-검색{background:var(--warn-soft);color:var(--warn)}
+.kwana{margin-top:16px;border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:12px}
+.kwana h3{font-family:var(--display);font-size:1.1rem;margin:0}
+.anastats{display:flex;flex-wrap:wrap;gap:8px}
+.anastats span{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.86rem}
+.anastats b{font-variant-numeric:tabular-nums}
+.spark{display:flex;align-items:flex-end;gap:3px;height:44px}
+.spark i{display:block;width:14px;background:var(--accent);opacity:.75;border-radius:2px 2px 0 0}
+.toppost{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg);display:flex;flex-direction:column;gap:3px}
+.toppost a{color:var(--ink);font-weight:600;text-decoration:none}
+.toppost a:hover{text-decoration:underline}
+.toppost small{color:var(--muted)}
+.topbox{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:8px 10px;margin-bottom:16px;font-size:.86rem}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.opts label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted)}
 .ai-cover{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 </style>
 
@@ -164,6 +196,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
   </header>
   <div class="topbar">
     <nav class="tabs" aria-label="화면 고르기">
+      <button type="button" class="tab" id="tabKw" hidden>키워드 찾기</button>
       <button type="button" class="tab on" id="tabWrite">새 글 쓰기</button>
       <button type="button" class="tab" id="tabInbox" hidden>카드뉴스 원고함 <span class="count" id="inboxCount" hidden></span></button>
     </nav>
@@ -176,7 +209,32 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
     <span class="keymsg" id="keymsg"></span>
   </form>
 
-  <div class="grid">
+  <section class="panel kwview" id="kwView" hidden aria-label="키워드 찾기">
+    <h2 class="ptitle">상위노출 키워드 찾기</h2>
+    <p class="note" style="margin:4px 0 14px">쓰고 싶은 주제를 넣으면, 검색은 많은데 블로그 글은 적은 키워드를 찾아요. 키워드를 누르면 지금 네이버 1~3위 글을 읽고 길이·사진·소제목을 분석해요.</p>
+    <form class="kwform" id="kwForm">
+      <input type="text" id="kwSeed" placeholder="예) 강아지 피부병, 난임 검사 (쉼표로 5개까지)" aria-label="주제 키워드">
+      <select id="kwLevel" aria-label="내 블로그 수준">
+        <option value="100-1500">새내기 블로그 · 월 검색 100~1,500</option>
+        <option value="500-5000" selected>중급 블로그 · 월 검색 500~5,000</option>
+        <option value="2000-30000">상급 블로그 · 월 검색 2,000~30,000</option>
+        <option value="0-1000000000">전체 보기</option>
+      </select>
+      <button class="btn" type="submit" id="kwGo">키워드 찾기</button>
+    </form>
+    <div class="kwhist" id="kwHist"></div>
+    <div class="status" id="kwStatus" role="status"></div>
+    <div class="kwtable-wrap" id="kwTableWrap" hidden>
+      <table class="kwtable">
+        <thead><tr><th>키워드</th><th>월 검색량</th><th>블로그 글 수</th><th>경쟁</th><th>등급</th><th></th></tr></thead>
+        <tbody id="kwBody"></tbody>
+      </table>
+    </div>
+    <p class="note" id="kwLegend" hidden>경쟁 = 블로그 글 수 ÷ 월 검색량 (작을수록 상위노출이 쉬워요). 0.5 미만 <b>황금</b> · 1.5 미만 <b>좋음</b> · 5 미만 <b>보통</b>. 검색량은 네이버 검색광고 키워드 도구 기준이에요.</p>
+    <div class="kwana" id="kwAna" hidden></div>
+  </section>
+
+  <div class="grid" id="mainGrid">
    <div class="leftcol">
     <section class="panel" id="writePanel" aria-label="재료 넣기">
       <div class="field">
@@ -200,6 +258,26 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
       <div class="field">
         <label class="label" for="kw">꼭 넣을 키워드 (선택)</label>
         <input type="text" id="kw" placeholder="예) 빈혈 수치, 페리틴, 철분제">
+      </div>
+
+      <div class="topbox" id="topBox" hidden>
+        <span id="topText"></span>
+        <button type="button" class="btn ghost" id="topClear" aria-label="상위글 분석 빼기">빼기</button>
+      </div>
+
+      <div class="field">
+        <span class="label">글 옵션</span>
+        <div class="opts">
+          <label for="optLen">본문 길이
+            <select id="optLen"><option value="auto">자동</option><option value="1600-1800">1,600~1,800자</option><option value="2000-2500">2,000~2,500자</option><option value="2500-3000">2,500~3,000자</option></select></label>
+          <label for="optSub">소제목
+            <select id="optSub"><option value="auto">자동</option><option value="3">3개</option><option value="4">4개</option><option value="5">5개</option></select></label>
+          <label for="optEmoji">이모지
+            <select id="optEmoji"><option value="none">안 넣기</option><option value="some">조금</option></select></label>
+          <label for="optAlign">붙여넣기 정렬
+            <select id="optAlign"><option value="center">가운데</option><option value="left">왼쪽</option></select></label>
+        </div>
+        <small class="note" id="lenNote" style="margin:4px 0 0">자동: 1,600~1,800자. 상위글을 분석했으면 상위 글 평균 길이에 맞춰요.</small>
       </div>
 
       <div class="field">
@@ -431,6 +509,27 @@ ${CARE}
 - 따뜻하고 가벼운 톤.`
 };
 
+/* ---------- 글 옵션 · 상위노출 분석 ---------- */
+let topA = null;   // 키워드 찾기에서 넘어온 상위 3개 글 분석
+function lenRange(){
+  const v = $("optLen").value;
+  if (v !== "auto") return v.split("-").map(Number);
+  const a = topA?.avg?.chars;
+  if (a && a > 1700){ const lo = Math.min(3000, Math.round(a/100)*100); return [lo, lo + 300]; }
+  return [1600, 1800];
+}
+function topBlock(){
+  if (!topA) return "";
+  const ps = (topA.posts||[]).filter(p=>!p.unread).map((p,i)=>`${i+1}위. ${p.title} (약 ${p.chars}자 · 사진 ${p.images}장 · 소제목 ${p.subheads}개)\n내용 발췌: ${String(p.excerpt||"").slice(0,1000)}`).join("\n\n");
+  return `[상위노출 분석] 네이버에서 '${topA.keyword}'를 검색하면 지금 1~3위인 글:
+${ps || "(본문을 읽지 못함)"}
+- 메인 키워드 '${topA.keyword}'를 제목 맨 앞쪽, 첫 문단, 소제목 하나 이상, 마지막 문단에 자연스럽게 넣기.
+${topA.related?.length ? `- 연관 키워드 ${topA.related.join(", ")} 중 2~3개를 소제목이나 본문에 넣기.\n` : ""}- 위 글들이 공통으로 다루는 핵심 정보는 빠짐없이 다루되, 문장·표현·구성은 절대 베끼지 말고 작가의 경험과 전문성으로 새로 쓸 것.
+- 위 글들에 없는 정보나 경험 1~2가지를 더해 차별화할 것.
+${topA.avg?.images ? `- 상위 글은 평균 사진 ${topA.avg.images}장을 씀. 사진 자리를 충분히 두기.\n` : ""}
+`;
+}
+
 function buildPrompt(cat, theme, kw, nImg, place, links, descs, fill){
   const fillRule = `글 흐름에 맞춰 사진 자리를 추가로 만들어 전체 4곳이 되게 할 것. 추가 자리는 [사진${nImg+1}]부터 번호를 이어 단독 줄로 넣고, 추가 자리마다 photoIdeas에 slot(번호), desc(어울리는 사진 한국어 한 줄), query(무료 사진 검색용 영어 키워드 2~4단어), own(맛집 음식·책·반려견처럼 직접 찍어야 자연스러우면 true, 아니면 false)을 적기.`;
   let photo;
@@ -457,14 +556,16 @@ ${place ? `[지도]
 ${links.map((l,i)=>`링크${i+1}: ${l.label || "(설명 없음)"} ${l.url}`).join("\n")}
 각 링크를 어울리는 위치에 한 문장으로 소개한 뒤 [링크1], [링크2]처럼 단독 줄로 넣기. 주소(URL)는 본문에 직접 쓰지 말 것.
 ` : ""}
-${CAT_RULES[cat]}
+${topBlock()}${CAT_RULES[cat]}
 
 [공통 규칙]
 - 말투: 편안한 존댓말, 전문지식은 쉽게. 뻔한 말 대신 공감되면서 끌리는 후킹 문장.
 - 구성: 후킹 → 공감 → 이야기/정보 → 해결방안 → 행동 유도.
 - 네이버 SEO: 인기검색어 2~3개를 제목과 본문 앞부분·중간·끝에 자연스럽게 반복(각 3~5회). 소제목은 한 줄로 "▶ 소제목" 형식.
 - 가독성: 한 문장마다 줄바꿈(\\n), 2~4문장마다 빈 줄(\\n\\n)로 문단 구분. 마크다운(#, **, -)은 쓰지 말 것.
-- 본문 길이: 공백 포함 1,600~1,800자(작가 소개 제외). 이 범위를 꼭 지킬 것.
+- 본문 길이: 공백 포함 ${lenRange()[0].toLocaleString()}~${lenRange()[1].toLocaleString()}자(작가 소개 제외). 이 범위를 꼭 지킬 것.
+- 소제목: ${$("optSub").value==="auto" ? "내용에 맞게 3~5개" : $("optSub").value + "개"}.
+- 이모지: ${$("optEmoji").value==="some" ? "문단 끝에 가끔(글 전체 5개 이내) 넣기" : "넣지 말 것"}.
 - 확인되지 않은 수치·성과("가장 많이 저장된", "90%가" 등)는 쓰지 말 것.
 - 작가 소개(글쓴이)는 쓰지 말 것. 프로그램이 자동으로 붙임.
 - 제목 후보 3개: 인기검색어를 앞쪽에 넣고, 호기심·공감으로 클릭하고 싶게. 30자 안팎.
@@ -641,8 +742,9 @@ function render(isExample){
   if (result.place) mn.innerHTML = `네이버 글쓰기에서 [지도] 자리에 커서를 두고 상단 '장소' 버튼으로 검색해 넣으세요. · <a href="https://map.naver.com/p/search/${encodeURIComponent(result.place)}" target="_blank" rel="noopener">네이버 지도에서 위치 확인</a>`;
   $("post").innerHTML = bodyHtml + `\n\n\n<span class="ft">${esc(FOOTERS[result.cat] || PSY_BIO)}</span>`;
   const n = result.body.trim().replace(/\[사진\s?\d+\]/g,"").replace(/\n+/g,"\n").length;
-  const m=$("meter"); m.innerHTML=`본문 <b>${n.toLocaleString()}</b>자 · 목표 1,600–1,800자`;
-  m.className = "meter " + (isExample ? "" : (n>=1550&&n<=1950 ? "ok":"off"));
+  const [lo, hi] = result.len || [1600, 1800];
+  const m=$("meter"); m.innerHTML=`본문 <b>${n.toLocaleString()}</b>자 · 목표 ${lo.toLocaleString()}–${hi.toLocaleString()}자`;
+  m.className = "meter " + (isExample ? "" : (n>=lo-50&&n<=hi+150 ? "ok":"off"));
 }
 $("postedChk").addEventListener("change", e=>{
   if (!result || result.source!=="inbox") return;
@@ -665,15 +767,17 @@ $("post").addEventListener("click", async e=>{
 
 /* ---------- 복사 ---------- */
 function textToHtml(text){
+  const al = $("optAlign")?.value === "left" ? "" : ' style="text-align:center"';
+  const alImg = $("optAlign")?.value === "left" ? "" : ' style="text-align:center"';
   return text.split("\n").map(ln=>{
     const m = ln.trim().match(/^\[사진\s?(\d+)\]$/);
     if (m){
       const s = slots[m[1]-1];
       if (!s || !s.data) return "";
-      return `<p><img src="${s.data}" style="max-width:100%;height:auto"></p>` + (s.credit ? `<p style="font-size:12px;color:#888888">${esc(s.credit)}</p>` : "");
+      return `<p${alImg}><img src="${s.data}" style="max-width:100%;height:auto"></p>` + (s.credit ? `<p${al}><span style="font-size:12px;color:#888888">${esc(s.credit)}</span></p>` : "");
     }
-    if (/^▶/.test(ln.trim())) return `<p><b>${esc(ln)}</b></p>`;
-    return ln.trim() ? `<p>${esc(ln)}</p>` : `<p><br></p>`;
+    if (/^▶/.test(ln.trim())) return `<p${al}><b>${esc(ln.trim().replace(/^▶\s*/,""))}</b></p>`;
+    return ln.trim() ? `<p${al}>${esc(ln)}</p>` : `<p${al}><br></p>`;
   }).join("");
 }
 function plainText(text){ return text.replace(/^\s*\[사진\s?\d+\]\s*$/gm, (m)=>{ const n=Number(m.match(/\d+/)[0]); return slots[n-1]?.data ? "" : m.trim(); }).replace(/\n{3,}/g,"\n\n"); }
@@ -1089,7 +1193,9 @@ $("go").onclick = async ()=>{
       mood: MOODS[data.mood] ? data.mood : (cat==="body"||cat==="insure" ? "cool" : cat==="food"||cat==="daily" ? "bright" : "pastel"),
       cover: data.cover && data.cover.main ? {main:String(data.cover.main), sub:String(data.cover.sub||"")} : null,
       userPhotos: nUser,
-      place, links
+      place, links,
+      len: lenRange(),
+      topKeyword: topA?.keyword || null
     };
     ideas.forEach(idea=>{ slots[Number(idea.slot)-1] = { kind:"empty", idea }; });
     pickedTitle=0; render(false); renderCovers();
@@ -1227,14 +1333,109 @@ $("inboxReload").onclick = loadInbox;
 
 /* ---------- 화면 전환 ---------- */
 function showTab(which){
-  const inbox = which==="inbox";
+  const inbox = which==="inbox", kwv = which==="kw";
+  $("kwView").hidden = !kwv; $("mainGrid").hidden = kwv;
   $("writePanel").hidden = inbox; $("inboxPanel").hidden = !inbox;
-  $("tabWrite").classList.toggle("on", !inbox); $("tabInbox").classList.toggle("on", inbox);
+  $("tabWrite").classList.toggle("on", which==="write"); $("tabInbox").classList.toggle("on", inbox); $("tabKw").classList.toggle("on", kwv);
   if (inbox && !inboxItems.length) loadInbox();
-  try{ history.replaceState(null, "", inbox ? "#inbox" : "#write"); }catch{}
+  try{ history.replaceState(null, "", "#" + which); }catch{}
+  window.scrollTo({top:0});
 }
 $("tabWrite").onclick = ()=>showTab("write");
 $("tabInbox").onclick = ()=>showTab("inbox");
+$("tabKw").onclick = ()=>showTab("kw");
+
+/* ---------- 키워드 찾기 ---------- */
+let kwList = [], kwSeeds = [];
+const fmt = n => n==null ? "–" : Number(n).toLocaleString();
+function renderKwTable(){
+  $("kwTableWrap").hidden = !kwList.length; $("kwLegend").hidden = !kwList.length;
+  $("kwBody").innerHTML = kwList.map((k,i)=>`<tr data-i="${i}" class="${topA && topA.keyword===k.kw ? "on" : ""}">
+    <td class="k">${esc(k.kw)}</td><td class="n">${fmt(k.vol)}</td><td class="n">${fmt(k.docs)}</td>
+    <td class="n">${k.ratio==null ? "–" : k.ratio}</td>
+    <td><span class="g g-${esc(String(k.grade).split(" ")[0])}">${esc(k.grade)}</span></td>
+    <td><button type="button" data-ana="${i}">상위글 분석</button></td></tr>`).join("");
+}
+function renderKwHist(){
+  const h = store.get("lab-kwhist", []);
+  $("kwHist").innerHTML = h.map((x,i)=>`<button type="button" data-h="${i}">${esc(x.q)}</button>`).join("");
+}
+$("kwHist").addEventListener("click", e=>{
+  const b = e.target.closest("[data-h]"); if (!b) return;
+  const x = store.get("lab-kwhist", [])[Number(b.dataset.h)]; if (!x) return;
+  $("kwSeed").value = x.q; kwList = x.keywords; kwSeeds = x.q.split(",").map(s=>s.trim());
+  $("kwStatus").textContent = `${new Date(x.at).toLocaleDateString("ko-KR")}에 찾은 결과예요. 다시 찾으려면 '키워드 찾기'를 누르세요.`;
+  renderKwTable();
+});
+$("kwForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const q = $("kwSeed").value.trim(); if (!q){ $("kwSeed").focus(); return; }
+  if (!appKey()){ showKeybar("먼저 앱 비밀번호를 넣어 주세요."); return; }
+  const [min, max] = $("kwLevel").value.split("-");
+  const btn = $("kwGo"); btn.disabled = true; $("kwStatus").textContent = "네이버에서 검색량과 블로그 글 수를 모으는 중… (10초 안팎)";
+  try{
+    const r = await apiFetch(`/api/keywords?q=${encodeURIComponent(q)}&min=${min}&max=${max}`);
+    const j = await r.json(); if (!r.ok) throw {message:j.error};
+    kwList = j.keywords || []; kwSeeds = j.seeds || [];
+    const gold = kwList.filter(k=>k.grade==="황금"||k.grade==="좋음").length;
+    $("kwStatus").textContent = kwList.length ? `연관 키워드 ${j.total}개 중 ${kwList.length}개를 골랐어요. 황금·좋음 ${gold}개. 키워드를 눌러 상위글을 분석해 보세요.` : "이 수준에 맞는 키워드가 없어요. 블로그 수준을 '전체 보기'로 바꿔 보세요.";
+    if (!j.docsAvailable) $("kwStatus").textContent += " (네이버 개발자센터 키가 없어 블로그 글 수는 비어 있어요)";
+    const h = store.get("lab-kwhist", []).filter(x=>x.q!==q); h.unshift({q, at:Date.now(), keywords:kwList}); store.set("lab-kwhist", h.slice(0,8));
+    renderKwTable(); renderKwHist();
+  }catch(err){ $("kwStatus").textContent = err?.message || "키워드를 가져오지 못했어요."; }
+  btn.disabled = false;
+});
+$("kwBody").addEventListener("click", e=>{
+  const b = e.target.closest("[data-ana]") || e.target.closest("tr[data-i]"); if (!b) return;
+  const k = kwList[Number(b.dataset.ana ?? b.dataset.i)]; if (k) analyzeKw(k.kw);
+});
+async function analyzeKw(kw){
+  const box = $("kwAna"); box.hidden = false;
+  box.innerHTML = `<p class="note" style="margin:0">'${esc(kw)}' 상위 1~3위 글을 읽는 중…</p>`;
+  box.scrollIntoView({behavior:"smooth", block:"start"});
+  try{
+    const r = await apiFetch(`/api/analyze?q=${encodeURIComponent(kw)}`);
+    const a = await r.json(); if (!r.ok) throw {message:a.error};
+    const related = kwList.filter(k=>k.kw!==kw && k.kw.replace(/\s/g,"")!==kw.replace(/\s/g,"")).slice(0,5).map(k=>k.kw);
+    const ana = { ...a, related };
+    const max = Math.max(1, ...(a.trend||[]).map(p=>p.v));
+    const read = (a.posts||[]).filter(p=>!p.unread);
+    box.innerHTML = `
+      <h3>'${esc(kw)}' 상위노출 분석</h3>
+      <div class="anastats">
+        <span>블로그 글 <b>${fmt(a.docs)}</b>개</span>
+        ${a.avg?.chars ? `<span>상위 글 평균 <b>${fmt(a.avg.chars)}</b>자</span>` : ""}
+        ${a.avg?.images!=null && read.length ? `<span>사진 평균 <b>${a.avg.images}</b>장</span>` : ""}
+        ${a.avg?.subheads!=null && read.length ? `<span>소제목 평균 <b>${a.avg.subheads}</b>개</span>` : ""}
+        ${a.season ? `<span>최근 3개월 검색 <b>${a.season.dir}</b></span>` : ""}
+      </div>
+      ${a.trend?.length ? `<div><small class="note" style="margin:0">최근 12개월 검색 추이 (${esc(a.trend[0].m)} ~ ${esc(a.trend[a.trend.length-1].m)})</small>
+        <div class="spark" aria-hidden="true">${a.trend.map(p=>`<i style="height:${Math.max(3, Math.round(p.v/max*44))}px" title="${esc(p.m)}: ${p.v}"></i>`).join("")}</div></div>` : ""}
+      ${(a.posts||[]).map((p,i)=>`<div class="toppost"><small>${i+1}위 · ${esc(p.blogger||"")} · ${esc(String(p.date||"").replace(/(\d{4})(\d{2})(\d{2})/,"$1.$2.$3"))}</small>
+        <a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
+        <small>${p.unread ? "본문을 읽지 못했어요" : `${fmt(p.chars)}자 · 사진 ${p.images}장 · 소제목 ${p.subheads}개${p.videos?` · 영상 ${p.videos}개`:""}${p.maps?" · 지도":""}`}</small></div>`).join("")}
+      ${related.length ? `<small class="note" style="margin:0">함께 넣으면 좋은 연관 키워드: ${related.map(esc).join(", ")}</small>` : ""}
+      <button type="button" class="btn" id="anaWrite">이 키워드로 상위노출 글쓰기</button>`;
+    $("anaWrite").onclick = ()=>useAnalysis(ana);
+    renderKwTable();
+  }catch(err){ box.innerHTML = `<p class="status err" style="margin:0">${esc(err?.message || "분석하지 못했어요.")}</p>`; }
+}
+function useAnalysis(a){
+  topA = a;
+  $("kw").value = [a.keyword, ...(a.related||[]).slice(0,2)].join(", ");
+  if (!$("theme").value.trim()) $("theme").value = `${a.keyword} — 검색하는 사람이 가장 궁금해하는 것을 정리해 주세요.`;
+  $("optLen").value = "auto";
+  showTopBox(); showTab("write");
+  setStatus("상위글 분석을 넣었어요. 테마를 내 경험에 맞게 다듬고 사진을 넣은 뒤 '원고 쓰기'를 누르세요.");
+}
+function showTopBox(){
+  $("topBox").hidden = !topA;
+  if (!topA) return;
+  const [lo, hi] = lenRange();
+  $("topText").innerHTML = `상위노출 모드 · <b>${esc(topA.keyword)}</b> 1~3위 글 분석을 반영해요 (목표 ${lo.toLocaleString()}~${hi.toLocaleString()}자${topA.avg?.images ? ` · 사진 ${topA.avg.images}장 이상 추천` : ""})`;
+}
+$("topClear").onclick = ()=>{ topA = null; showTopBox(); renderKwTable(); };
+$("optLen").addEventListener("change", showTopBox);
 
 function showKeybar(msg){ $("keybar").hidden = false; $("keymsg").textContent = msg || ""; $("appKey").focus(); }
 $("keybar").addEventListener("submit", async e=>{
@@ -1253,7 +1454,7 @@ function updateModeline(){
   if (MODE.claude) ml.textContent = "AI: Claude 연결됨";
   else if (MODE.server){
     const c = MODE.cfg;
-    ml.textContent = `AI: 넷리파이 서버 · 글쓰기 ${c.anthropic?"켜짐":"꺼짐"} · 무료사진 ${c.pexels?"켜짐":"꺼짐"} · AI그림 ${c.openai?"켜짐":"꺼짐"}`;
+    ml.textContent = `넷리파이 서버 · 글쓰기 ${c.anthropic?"켜짐":"꺼짐"} · 키워드 ${c.naverAd?"켜짐":"꺼짐"} · 상위글 분석 ${c.naverSearch?"켜짐":"꺼짐"} · 무료사진 ${c.pexels?"켜짐":"꺼짐"} · AI그림 ${c.openai?"켜짐":"꺼짐"}`;
     if (!c.anthropic) setStatus("넷리파이 환경변수에 ANTHROPIC_API_KEY를 넣어야 글쓰기가 켜져요.", true);
   } else ml.textContent = "AI 연결 없음";
   $("fillNote").hidden = !(MODE.server && !MODE.claude && (MODE.cfg.pexels || MODE.cfg.openai));
@@ -1283,10 +1484,11 @@ function updateModeline(){
   }
   updateModeline();
   if (MODE.server){
-    $("tabInbox").hidden = false;
+    $("tabInbox").hidden = false; $("tabKw").hidden = false;
     if (!appKey()) showKeybar("처음 한 번만 넣으면 이 기기에 저장돼요.");
-    loadInbox();
+    loadInbox(); renderKwHist();
     if (location.hash === "#inbox") showTab("inbox");
+    else if (location.hash === "#kw") showTab("kw");
   }
   renderCovers();
 })();
