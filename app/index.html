@@ -75,7 +75,11 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .titles{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .titles li{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
 .titles li.on{border-color:var(--accent);background:var(--accent-soft)}
-.titles li span{font-family:var(--display);font-weight:700;font-size:1.02rem;line-height:1.45;min-width:0}
+.titles li span{font-family:var(--display);font-weight:700;font-size:1.02rem;line-height:1.45;min-width:0;flex:1;user-select:text;-webkit-user-select:text}
+.titles li{align-items:center}
+.tcopy{flex:none;font:600 .76rem var(--body);padding:4px 10px;border-radius:999px;border:1px solid var(--accent);background:var(--paper);color:var(--accent);cursor:pointer}
+.post .endimg{display:block;max-width:420px;margin:8px 0}
+.post .endimg img{display:block;width:100%;height:auto;border-radius:8px;border:1px solid var(--line)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font-size:.82rem;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--bg)}
 .chip.kw{border-color:var(--accent);color:var(--accent)}
@@ -237,6 +241,13 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
   <div class="grid" id="mainGrid">
    <div class="leftcol">
     <section class="panel" id="writePanel" aria-label="재료 넣기">
+      <div class="field">
+        <span class="label">블로그</span>
+        <div class="cats" id="blogs">
+          <label><input type="radio" name="blog" value="witch0125"><b>witch0125 · 심리</b><small>상담 마무리 문단·예약 링크·공저 책</small></label>
+          <label><input type="radio" name="blog" value="ljh840125" checked><b>ljh840125 · 건강</b><small>임상병리사 소개·개정판 링크·마지막 사진 2장</small></label>
+        </div>
+      </div>
       <div class="field">
         <span class="label">카테고리</span>
         <div class="cats" id="cats">
@@ -456,6 +467,26 @@ const FOOTERS = {
   kpa: KPA_CLOSING
 };
 
+/* 블로그 아이디별 글 말미 (카테고리보다 우선) */
+const BLOGS = {
+  witch0125: { footer: KPA_CLOSING, endImgs: [], defCat: "mind" },
+  ljh840125: { footer: HEALTH_BIO, endImgs: ["lab/LAB_end_01_book_2026.jpg", "lab/LAB_end_02_author_profile.jpg"], defCat: "body" }
+};
+const currentBlog = () => document.querySelector('input[name=blog]:checked')?.value || "ljh840125";
+const footerOf = r => (r.blog && BLOGS[r.blog]) ? BLOGS[r.blog].footer : (FOOTERS[r.cat] || PSY_BIO);
+let endImgs = {};   // 경로 → {blob, url, data}
+async function loadEndImgs(){
+  for (const b of Object.values(BLOGS)) for (const pth of b.endImgs){
+    if (endImgs[pth]) continue;
+    try{
+      const r = await fetch(pth); if (!r.ok) continue;
+      const blob = await r.blob();
+      endImgs[pth] = { blob, url: URL.createObjectURL(blob), data: await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(""); fr.readAsDataURL(blob); }) };
+    }catch{}
+  }
+}
+const endList = r => (r.blog && BLOGS[r.blog]) ? BLOGS[r.blog].endImgs : [];
+
 const INTROS = {
   body: "[Body LAB 내 몸이 보내는 신호, 제대로 듣고 계신가요? 수천 건의 검사 결과를 본 20년차 임상병리사가 임신, 난임, 다이어트, 건강까지 임상적 근거와 경험으로 풀어드립니다.]",
   tarot: "[Tarot LAB 당신의 무의식이 이미 답을 알고 있습니다. 상담심리전공한 타로리더가 카드 너머의 우주의 메세지를 읽어드립니다]"
@@ -531,6 +562,8 @@ ${topA.avg?.images ? `- 상위 글은 평균 사진 ${topA.avg.images}장을 씀
 }
 
 function buildPrompt(cat, theme, kw, nImg, place, links, descs, fill){
+  let catRules = CAT_RULES[cat];
+  if (currentBlog() === "witch0125") catRules = catRules.replace("- 아래 내용을 본문 후반에 자연스럽게 녹여 넣기(문장을 조금 다듬어도 됨):\n" + CARE, "- 글 끝에 상담 안내·예약 링크·작가 소개가 자동으로 붙으니 본문에는 넣지 말 것.");
   const fillRule = `글 흐름에 맞춰 사진 자리를 추가로 만들어 전체 4곳이 되게 할 것. 추가 자리는 [사진${nImg+1}]부터 번호를 이어 단독 줄로 넣고, 추가 자리마다 photoIdeas에 slot(번호), desc(어울리는 사진 한국어 한 줄), query(무료 사진 검색용 영어 키워드 2~4단어), own(맛집 음식·책·반려견처럼 직접 찍어야 자연스러우면 true, 아니면 false)을 적기.`;
   let photo;
   if (nImg){
@@ -556,7 +589,7 @@ ${place ? `[지도]
 ${links.map((l,i)=>`링크${i+1}: ${l.label || "(설명 없음)"} ${l.url}`).join("\n")}
 각 링크를 어울리는 위치에 한 문장으로 소개한 뒤 [링크1], [링크2]처럼 단독 줄로 넣기. 주소(URL)는 본문에 직접 쓰지 말 것.
 ` : ""}
-${topBlock()}${CAT_RULES[cat]}
+${topBlock()}${catRules}
 
 [공통 규칙]
 - 말투: 편안한 존댓말, 전문지식은 쉽게. 뻔한 말 대신 공감되면서 끌리는 후킹 문장.
@@ -693,7 +726,10 @@ function fillBody(){
   if (result.place) b = b.replace(/\[지도\]/g, `[지도: 네이버 글쓰기 '장소' 버튼으로 "${result.place}" 추가]`);
   return b;
 }
-function fullBody(){ return fillBody() + "\n\n\n" + (FOOTERS[result.cat] || PSY_BIO); }
+function fullBody(){
+  const ends = endList(result).map((p,i)=>`[저자사진${i+1}]`).join("\n\n");
+  return fillBody() + "\n\n\n" + footerOf(result) + (ends ? "\n\n" + ends : "");
+}
 function tagLine(){ return result.hashtags.map(t=>"#"+String(t).replace(/^#/,"").replace(/\s+/g,"")).join(" "); }
 
 function slotHtml(n){
@@ -726,9 +762,14 @@ function render(isExample){
   const ul = $("titles"); ul.innerHTML="";
   result.titles.forEach((t,i)=>{
     const li=document.createElement("li"); if(i===pickedTitle) li.className="on";
-    li.tabIndex=0; li.innerHTML=`<span>${esc(t)}</span>`;
+    li.tabIndex=0; li.innerHTML=`<span>${esc(t)}</span><button type="button" class="tcopy">복사</button>`;
     const pick=()=>{pickedTitle=i;render(isExample);};
-    li.onclick=pick; li.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick();}};
+    li.onclick=e=>{
+      if (e.target.closest(".tcopy")){ pickedTitle=i; [...ul.children].forEach((x,k)=>x.classList.toggle("on", k===i)); copy(t, e.target); return; }
+      if (String(getSelection?.() || "").trim()) return;   // 글자를 드래그해 선택 중이면 그대로 둠
+      pick();
+    };
+    li.onkeydown=e=>{if(e.target===li && (e.key==="Enter"||e.key===" ")){e.preventDefault();pick();}};
     ul.append(li);
   });
   $("keywords").innerHTML = result.keywords.map(k=>`<span class="chip kw">${esc(k)}</span>`).join("");
@@ -740,7 +781,8 @@ function render(isExample){
   const mn = $("mapNote");
   mn.hidden = !result.place;
   if (result.place) mn.innerHTML = `네이버 글쓰기에서 [지도] 자리에 커서를 두고 상단 '장소' 버튼으로 검색해 넣으세요. · <a href="https://map.naver.com/p/search/${encodeURIComponent(result.place)}" target="_blank" rel="noopener">네이버 지도에서 위치 확인</a>`;
-  $("post").innerHTML = bodyHtml + `\n\n\n<span class="ft">${esc(FOOTERS[result.cat] || PSY_BIO)}</span>`;
+  const endHtml = endList(result).map(p=>endImgs[p] ? `<span class="endimg"><img src="${endImgs[p].url}" alt="글 말미 사진"></span>` : `<span class="ph">[글 말미 사진]</span>`).join("");
+  $("post").innerHTML = bodyHtml + `\n\n\n<span class="ft">${esc(footerOf(result))}</span>` + (endHtml ? "\n" + endHtml : "");
   const n = result.body.trim().replace(/\[사진\s?\d+\]/g,"").replace(/\n+/g,"\n").length;
   const [lo, hi] = result.len || [1600, 1800];
   const m=$("meter"); m.innerHTML=`본문 <b>${n.toLocaleString()}</b>자 · 목표 ${lo.toLocaleString()}–${hi.toLocaleString()}자`;
@@ -770,6 +812,8 @@ function textToHtml(text){
   const al = $("optAlign")?.value === "left" ? "" : ' style="text-align:center"';
   const alImg = $("optAlign")?.value === "left" ? "" : ' style="text-align:center"';
   return text.split("\n").map(ln=>{
+    const em = ln.trim().match(/^\[저자사진(\d)\]$/);
+    if (em){ const p = endList(result)[em[1]-1], d = p && endImgs[p]; return d ? `<p${alImg}><img src="${d.data}" style="max-width:100%;height:auto"></p>` : ""; }
     const m = ln.trim().match(/^\[사진\s?(\d+)\]$/);
     if (m){
       const s = slots[m[1]-1];
@@ -780,7 +824,7 @@ function textToHtml(text){
     return ln.trim() ? `<p${al}>${esc(ln)}</p>` : `<p${al}><br></p>`;
   }).join("");
 }
-function plainText(text){ return text.replace(/^\s*\[사진\s?\d+\]\s*$/gm, (m)=>{ const n=Number(m.match(/\d+/)[0]); return slots[n-1]?.data ? "" : m.trim(); }).replace(/\n{3,}/g,"\n\n"); }
+function plainText(text){ return text.replace(/^\s*\[저자사진\d\]\s*$/gm, "").replace(/^\s*\[사진\s?\d+\]\s*$/gm, (m)=>{ const n=Number(m.match(/\d+/)[0]); return slots[n-1]?.data ? "" : m.trim(); }).replace(/\n{3,}/g,"\n\n"); }
 const TOUCH = matchMedia("(pointer:coarse)").matches;
 /* 글자 복사: 클립보드 API → 화면 밖 텍스트 선택 복사 → 직접 복사 창 */
 function openCopySheet(text){
@@ -856,6 +900,7 @@ function photoFiles(){
     const sl = slots[n-1];
     if (sl && sl.blob) files.push(new File([sl.blob], `${String(n).padStart(2,"0")}_사진${n}.jpg`, {type:"image/jpeg"}));
   });
+  endList(result).forEach((p,i)=>{ if (endImgs[p]) files.push(new File([endImgs[p].blob], `${98+i}_글말미사진${i+1}.jpg`, {type:"image/jpeg"})); });
   return files;
 }
 $("savePhotos").onclick = async e=>{
@@ -1185,7 +1230,7 @@ $("go").onclick = async ()=>{
     slots = photos.slice(0,nUser).map((p,i)=>({ kind:"mine", blob:p.file, url:p.url, data:datas[i] }));
     coverAI = null;
     result = {
-      cat,
+      cat, blog: currentBlog(),
       titles: data.titles.slice(0,3).map(String),
       keywords: (data.keywords||[]).slice(0,3).map(String),
       body: ensurePhotos(String(data.body), nUser, extra),
@@ -1300,7 +1345,7 @@ async function openInbox(id){
   coverAI = null;
   const title = meta.title || it.title;
   result = {
-    cat:"kpa", source:"inbox", id,
+    cat:"kpa", blog:"witch0125", source:"inbox", id,
     titles:[title],
     keywords:(meta.keywords||"").split(",").map(s=>s.trim()).filter(Boolean),
     body:text,
@@ -1460,6 +1505,19 @@ function updateModeline(){
   $("fillNote").hidden = !(MODE.server && !MODE.claude && (MODE.cfg.pexels || MODE.cfg.openai));
 }
 
+/* ---------- 블로그 고르기 ---------- */
+function applyBlogChoice(v, setCat){
+  const r = document.querySelector(`input[name=blog][value="${v}"]`); if (r) r.checked = true;
+  if (setCat){ const c = document.querySelector(`input[name=cat][value="${BLOGS[v].defCat}"]`); if (c) c.checked = true; }
+}
+$("blogs").addEventListener("change", e=>{
+  const v = e.target.value; if (!BLOGS[v]) return;
+  store.set("lab-blog", v); applyBlogChoice(v, true);
+  if (result && result.source !== "inbox" && result !== EXAMPLE){ result.blog = v; store.set("lab-last", result); render(false); }
+});
+applyBlogChoice(store.get("lab-blog", "ljh840125"), true);
+loadEndImgs().then(()=>{ if (result) render(result === EXAMPLE); });
+
 /* ---------- 시작 ---------- */
 (async ()=>{
   // 1) Claude 안에서 열렸는지
@@ -1495,7 +1553,7 @@ function updateModeline(){
 
 (function(){
   const saved = store.get("lab-last", null);
-  if(saved && saved.body && FOOTERS[saved.cat]){ result=saved; render(false); $("badge").textContent="지난 원고"; }
+  if(saved && saved.body && (FOOTERS[saved.cat] || BLOGS[saved.blog])){ result=saved; render(false); $("badge").textContent="지난 원고"; }
   else { result=EXAMPLE; render(true); }
 })();
 </script>
