@@ -190,6 +190,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .topbox{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:8px 10px;margin-bottom:16px;font-size:.86rem}
 .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .opts label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted)}
+.anabtns{display:flex;flex-wrap:wrap;gap:8px}
+.anabtns .btn{width:auto;flex:1 1 220px}
 .ai-cover{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 </style>
 
@@ -264,6 +266,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
       <div class="field">
         <label class="label" for="theme">테마 / 하고 싶은 이야기</label>
         <textarea id="theme" placeholder="예) 건강검진 결과지에 '빈혈 의심'이 떴을 때, 페리틴 수치까지 꼭 봐야 하는 이유"></textarea>
+        <small class="note" id="themeHint" style="margin:4px 0 0">넷리파이 '키워드 찾기'에서 복사한 상위노출 분석을 여기에 붙여 넣으면 상위노출 모드로 바뀌어요.</small>
       </div>
 
       <div class="field">
@@ -1460,11 +1463,49 @@ async function analyzeKw(kw){
         <a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.title)}</a>
         <small>${p.unread ? "본문을 읽지 못했어요" : `${fmt(p.chars)}자 · 사진 ${p.images}장 · 소제목 ${p.subheads}개${p.videos?` · 영상 ${p.videos}개`:""}${p.maps?" · 지도":""}`}</small></div>`).join("")}
       ${related.length ? `<small class="note" style="margin:0">함께 넣으면 좋은 연관 키워드: ${related.map(esc).join(", ")}</small>` : ""}
-      <button type="button" class="btn" id="anaWrite">이 키워드로 상위노출 글쓰기</button>`;
-    $("anaWrite").onclick = ()=>useAnalysis(ana);
+      <div class="anabtns">
+        <button type="button" class="btn" id="anaCopy">Claude 공방으로 복사</button>
+        ${MODE.cfg.anthropic ? `<button type="button" class="btn ghost" id="anaWrite">여기서 바로 쓰기 (유료 키)</button>` : ""}
+      </div>
+      <p class="note" id="anaCopyMsg" style="margin:0">복사한 뒤 <a href="${"https://claude.ai/artifact/YL7KC8XE2E75KdX5Y6rZpv"}" target="_blank" rel="noopener">Claude 블로그 공방</a>을 열어 '테마' 칸에 붙여 넣으세요. 추가 요금 없이 상위노출 모드로 써져요.</p>`;
+    $("anaCopy").onclick = e=>copyAnalysis(ana, e.currentTarget);
+    if ($("anaWrite")) $("anaWrite").onclick = ()=>useAnalysis(ana);
     renderKwTable();
   }catch(err){ box.innerHTML = `<p class="status err" style="margin:0">${esc(err?.message || "분석하지 못했어요.")}</p>`; }
 }
+/* ---------- 넷리파이 분석 → Claude 공방 넘기기 ---------- */
+const HANDOFF = "[[블로그공방 상위노출 분석]]";
+function packAnalysis(a){
+  const slim = { keyword:a.keyword, related:(a.related||[]).slice(0,5), avg:a.avg, season:a.season, docs:a.docs,
+    posts:(a.posts||[]).map(p=>p.unread ? { title:p.title, unread:true } : { title:p.title, chars:p.chars, images:p.images, subheads:p.subheads, excerpt:String(p.excerpt||"").slice(0,1000) }) };
+  return `${HANDOFF}\n키워드: ${a.keyword}\n(이 글 전체를 Claude 블로그 공방의 '테마' 칸에 붙여 넣으세요)\n<<<${JSON.stringify(slim)}>>>`;
+}
+async function copyAnalysis(a, btn){
+  const ok = await copy(packAnalysis(a), btn);
+  if (ok) $("anaCopyMsg").innerHTML = `복사됐어요. <a href="https://claude.ai/artifact/YL7KC8XE2E75KdX5Y6rZpv" target="_blank" rel="noopener">Claude 블로그 공방 열기</a> → '테마' 칸에 붙여넣기.`;
+}
+function takeHandoff(){
+  const t = $("theme").value;
+  if (!t.includes(HANDOFF)) return false;
+  const m = t.match(/<<<([\s\S]*)>>>/);
+  try{
+    const a = JSON.parse(m[1]);
+    if (!a || !a.keyword) throw 0;
+    const before = t.slice(0, t.indexOf(HANDOFF)).trim();
+    topA = a;
+    $("kw").value = [a.keyword, ...(a.related||[]).slice(0,2)].join(", ");
+    $("theme").value = before || `${a.keyword} — 검색하는 사람이 가장 궁금해하는 것을 정리해 주세요.`;
+    $("optLen").value = "auto";
+    showTopBox();
+    setStatus(`'${a.keyword}' 상위노출 분석을 넣었어요. 테마를 내 경험에 맞게 다듬고 사진을 넣은 뒤 '원고 쓰기'를 누르세요.`);
+    return true;
+  }catch{
+    setStatus("분석 내용이 잘렸어요. 넷리파이에서 'Claude 공방으로 복사'를 다시 눌러 붙여 넣어 주세요.", true);
+    return false;
+  }
+}
+$("theme").addEventListener("input", ()=>{ if ($("theme").value.includes(HANDOFF)) takeHandoff(); });
+
 function useAnalysis(a){
   topA = a;
   $("kw").value = [a.keyword, ...(a.related||[]).slice(0,2)].join(", ");
@@ -1500,7 +1541,7 @@ function updateModeline(){
   else if (MODE.server){
     const c = MODE.cfg;
     ml.textContent = `넷리파이 서버 · 글쓰기 ${c.anthropic?"켜짐":"꺼짐"} · 키워드 ${c.naverAd?"켜짐":"꺼짐"} · 상위글 분석 ${c.naverSearch?"켜짐":"꺼짐"} · 무료사진 ${c.pexels?"켜짐":"꺼짐"} · AI그림 ${c.openai?"켜짐":"꺼짐"}`;
-    if (!c.anthropic) setStatus("넷리파이 환경변수에 ANTHROPIC_API_KEY를 넣어야 글쓰기가 켜져요.", true);
+    if (!c.anthropic) setStatus("이 앱에서는 키워드 찾기와 원고함을 쓰고, 새 글은 Claude 블로그 공방에서 써요 (추가 요금 없음).");
   } else ml.textContent = "AI 연결 없음";
   $("fillNote").hidden = !(MODE.server && !MODE.claude && (MODE.cfg.pexels || MODE.cfg.openai));
 }
@@ -1546,7 +1587,7 @@ loadEndImgs().then(()=>{ if (result) render(result === EXAMPLE); });
     if (!appKey()) showKeybar("처음 한 번만 넣으면 이 기기에 저장돼요.");
     loadInbox(); renderKwHist();
     if (location.hash === "#inbox") showTab("inbox");
-    else if (location.hash === "#kw") showTab("kw");
+    else if (location.hash === "#kw" || (!MODE.cfg.anthropic && location.hash !== "#write")) showTab("kw");
   }
   renderCovers();
 })();
