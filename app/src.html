@@ -1619,7 +1619,17 @@ loadEndImgs().then(()=>{ if (result) render(result === EXAMPLE); });
 
 /* ---------- 내 원고 목록 (Claude 안: 계정에 저장 → PC·휴대폰 공유 / 넷리파이: 이 기기에 저장) ---------- */
 const hist = { mode: "local", items: [], col: null };
-function loadLocalHist(){ hist.items = store.get("lab-hist", []); renderHist(); }
+function loadLocalHist(){ hist.items = store.get("lab-hist", []); hist.ready = true; renderHist(); adoptLast(); }
+/* 목록 기능 전에 쓴 마지막 원고도 목록에 넣기 (한 번만) */
+let adopted = false;
+function adoptLast(){
+  if (adopted) return; adopted = true;
+  const last = store.get("lab-last", null);
+  if (!last || !last.body || last.source === "inbox") return;
+  if (last.histId && hist.items.some(x=>x.id === last.histId)) return;
+  if (result && result.body === last.body){ result.histAt = result.histAt || Date.now(); saveHist(result); }
+  else saveHist({ ...last, histAt: last.histAt || Date.now() });
+}
 async function initHistory(){
   if (window.claude){
     try{
@@ -1630,7 +1640,7 @@ async function initHistory(){
         hist.col = db.doc(`data/users/${uid}/profile`).collection("posts");
         $("histNote").textContent = "공방에서 쓴 원고가 자동으로 저장돼요. PC와 휴대폰 어디서 열어도 같은 목록이 보여요. 사진은 저장되지 않아서, 다시 열면 [사진] 자리만 보여요.";
         hist.col.orderBy("at", "desc").limit(300).onSnapshot(snap=>{
-          hist.items = snap.docs.map(d=>({ id: d.id, ...d.data() })); renderHist();
+          hist.items = snap.docs.map(d=>({ id: d.id, ...d.data() })); hist.ready = true; renderHist(); adoptLast();
         }, ()=>{ hist.mode = "local"; loadLocalHist(); });
         return;
       }
@@ -1660,7 +1670,7 @@ function histDate(t){ const d = new Date(t); return `${d.getMonth()+1}월 ${d.ge
 function renderHist(){
   const q = $("histQ").value.trim().toLowerCase(), bl = $("histBlog").value;
   const list = hist.items.filter(x=>(!bl || x.blog === bl) && (!q || [...(x.titles||[]), ...(x.keywords||[])].join(" ").toLowerCase().includes(q)));
-  $("histStatus").textContent = hist.items.length ? (list.length ? "" : "찾는 원고가 없어요.") : "아직 저장된 원고가 없어요. '새 글 쓰기'에서 원고를 쓰면 여기에 쌓여요.";
+  $("histStatus").textContent = hist.items.length ? (list.length ? `원고 ${list.length}편${q||bl ? ` (전체 ${hist.items.length}편 중)` : ""} · 최신 글이 위에 있어요` : "찾는 원고가 없어요.") : (hist.ready ? "아직 저장된 원고가 없어요. '새 글 쓰기'에서 원고를 쓰면 여기에 쌓여요." : "목록을 불러오는 중…");
   $("histList").innerHTML = list.map(x=>{
     const t = (x.titles||[])[x.pickedTitle||0] || (x.titles||[])[0] || "(제목 없음)";
     return `<li tabindex="0" data-h="${esc(x.id)}" class="${result && result.histId===x.id ? "on" : ""}">
