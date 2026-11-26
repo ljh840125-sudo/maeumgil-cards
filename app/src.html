@@ -1626,7 +1626,7 @@ function adoptLast(){
   if (adopted) return; adopted = true;
   const last = store.get("lab-last", null);
   if (!last || !last.body || last.source === "inbox") return;
-  if (last.histId && hist.items.some(x=>x.id === last.histId)) return;
+  if (last.histId) return;   // 이미 목록에 저장된 적 있는 원고(지운 것 포함)는 다시 넣지 않음
   if (result && result.body === last.body){ result.histAt = result.histAt || Date.now(); saveHist(result); }
   else saveHist({ ...last, histAt: last.histAt || Date.now() });
 }
