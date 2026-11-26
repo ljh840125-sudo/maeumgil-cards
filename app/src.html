@@ -192,6 +192,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .opts label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted)}
 .anabtns{display:flex;flex-wrap:wrap;gap:8px}
 .anabtns .btn{width:auto;flex:1 1 220px}
+.pick-file{width:100%;min-height:40px;font-size:.85rem;border-style:dashed}
+.pastebox{width:100%;min-height:44px;font:16px var(--body);text-align:center;border:1.5px dashed var(--line);border-radius:8px;background:var(--paper);color:var(--ink);padding:10px;resize:none}
+.pastebox:focus{border-color:var(--accent);outline:none}
+.linkbtn{font:inherit;color:var(--accent);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
 .ai-cover{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 </style>
 
@@ -311,7 +315,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
             <div class="pick"><span>앨범에서 선택</span><input type="file" id="files" accept="image/*" multiple aria-label="앨범에서 사진 선택"></div>
             <div class="pick"><span>카메라로 찍기</span><input type="file" id="cam" accept="image/*" capture="environment" aria-label="카메라로 사진 찍기"></div>
           </div>
-          <span class="hint">PC에서는 사진을 여기로 끌어놓아도 돼요</span>
+          <div class="pick pick-file"><span>파일에서 고르기 (앨범이 안 열릴 때)</span><input type="file" id="anyfile" multiple aria-label="파일에서 사진 고르기"></div>
+          <textarea class="pastebox" id="pastebox" rows="2" inputmode="none" aria-label="사진 붙여넣기" placeholder="갤러리에서 사진을 '복사'한 뒤, 여기를 길게 눌러 '붙여넣기'"></textarea>
+          <span class="hint">PC에서는 사진을 여기로 끌어놓거나 Ctrl+V로 붙여 넣어도 돼요</span>
+          <small class="note" id="appTip" hidden style="margin:0">Claude 휴대폰 앱에서는 앨범이 안 열릴 수 있어요. 그럴 땐 위 붙여넣기 칸을 쓰거나, <button type="button" class="linkbtn" id="copyLink">이 공방 주소 복사</button> 후 웨일·크롬에서 열어 주세요.</small>
           <small id="imgLimit">최대 10장 · 넣은 사진은 본문에 골고루 배치돼요</small>
         </div>
         <div class="thumbs" id="thumbs"></div>
@@ -700,6 +707,27 @@ const drop = $("drop");
 ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
 drop.addEventListener("drop", e=>addFiles(e.dataTransfer.files));
+$("anyfile").addEventListener("change", e=>{ addFiles(e.target.files); e.target.value=""; });
+/* 붙여넣기로 사진 넣기: 갤러리에서 '복사' → 붙여넣기 칸(또는 PC Ctrl+V) */
+function pastedFiles(e){
+  const out = [];
+  for (const it of (e.clipboardData?.items || [])) if (it.kind === "file"){ const f = it.getAsFile(); if (f) out.push(f); }
+  if (!out.length) for (const f of (e.clipboardData?.files || [])) out.push(f);
+  return out.filter(isImg);
+}
+document.addEventListener("paste", e=>{
+  const t = e.target;
+  const inText = t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT") && t.id !== "pastebox";
+  const files = pastedFiles(e);
+  if (!files.length){ if (t && t.id === "pastebox"){ e.preventDefault(); setStatus("붙여 넣은 게 사진이 아니에요. 갤러리에서 사진을 열고 공유 → '복사'(클립보드에 복사)를 먼저 눌러 주세요.", true); } return; }
+  if (inText && !files.length) return;
+  e.preventDefault();
+  addFiles(files);
+  if (t && t.id === "pastebox") t.value = "";
+});
+$("pastebox").addEventListener("input", e=>{ e.target.value = ""; });
+if (matchMedia("(pointer:coarse)").matches && window.claude) $("appTip").hidden = false;
+$("copyLink").onclick = e=>copy("https://claude.ai/artifact/YL7KC8XE2E75KdX5Y6rZpv", e.currentTarget);
 
 /* ---------- 원고 화면 ---------- */
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
