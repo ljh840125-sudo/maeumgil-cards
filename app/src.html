@@ -196,6 +196,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
 .pastebox{width:100%;min-height:44px;font:16px var(--body);text-align:center;border:1.5px dashed var(--line);border-radius:8px;background:var(--paper);color:var(--ink);padding:10px;resize:none}
 .pastebox:focus{border-color:var(--accent);outline:none}
 .linkbtn{font:inherit;color:var(--accent);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}
+.histbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:12px}
+.histbar input,.histbar select{width:100%}
+.inbox li .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hdel{flex:none;font:500 .74rem var(--body);padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--muted);cursor:pointer}
+.hdel.arm{border-color:var(--warn);color:var(--warn)}
+.pill.blog{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
 .ai-cover{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 </style>
 
@@ -208,6 +214,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
     <nav class="tabs" aria-label="화면 고르기">
       <button type="button" class="tab" id="tabKw" hidden>키워드 찾기</button>
       <button type="button" class="tab on" id="tabWrite">새 글 쓰기</button>
+      <button type="button" class="tab" id="tabHist">내 원고 목록</button>
       <button type="button" class="tab" id="tabInbox" hidden>카드뉴스 원고함 <span class="count" id="inboxCount" hidden></span></button>
     </nav>
     <span class="modeline" id="modeline">AI 연결 확인 중…</span>
@@ -328,6 +335,25 @@ input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-vis
       <div class="status" id="status" role="status"></div>
       <p class="note">해시태그·키워드는 AI가 검색 경향을 추정한 것이에요. 실시간 검색량은 네이버 데이터랩·키워드도구로 한 번 확인해 주세요.</p>
       <p class="note" id="fillNote" hidden>사진이 4장보다 적으면 모자란 자리를 무료 사진(Pexels)이나 AI 그림으로 채워요. 맛집·독서·반려견처럼 직접 찍어야 자연스러운 자리는 비워 둬요.</p>
+    </section>
+
+    <section class="panel" id="histPanel" aria-label="내 원고 목록" hidden>
+      <div class="inbox-head">
+        <div>
+          <h2 class="ptitle">내 원고 목록</h2>
+          <p class="note" id="histNote" style="margin:2px 0 0">공방에서 쓴 원고가 자동으로 저장돼요. 사진은 저장되지 않아서, 다시 열면 [사진] 자리만 보여요.</p>
+        </div>
+      </div>
+      <div class="histbar">
+        <input type="search" id="histQ" placeholder="제목·키워드 검색" aria-label="원고 검색">
+        <select id="histBlog" aria-label="블로그로 거르기">
+          <option value="">모든 블로그</option>
+          <option value="witch0125">witch0125 · 심리</option>
+          <option value="ljh840125">ljh840125 · 건강</option>
+        </select>
+      </div>
+      <ul class="inbox" id="histList"></ul>
+      <div class="status" id="histStatus" role="status"></div>
     </section>
 
     <section class="panel" id="inboxPanel" aria-label="카드뉴스 원고함" hidden>
@@ -785,18 +811,19 @@ function slotHtml(n){
 }
 
 function render(isExample){
-  const badge = result.source==="inbox" ? "카드뉴스 원고" : isExample ? "예시 원고" : "완성 원고";
+  const badge = result.source==="inbox" ? "카드뉴스 원고" : result.source==="hist" ? "저장된 원고" : isExample ? "예시 원고" : "완성 원고";
   $("badge").textContent = badge;
   $("badge").className = "badge" + (isExample ? "" : " ok");
-  $("postedWrap").hidden = result.source !== "inbox";
+  $("postedWrap").hidden = !(result.source === "inbox" || result.histId);
   if (result.source==="inbox") $("postedChk").checked = !!store.get("lab-posted", {})[result.id];
+  else if (result.histId) $("postedChk").checked = !!result.posted;
   const ul = $("titles"); ul.innerHTML="";
   result.titles.forEach((t,i)=>{
     const li=document.createElement("li"); if(i===pickedTitle) li.className="on";
     li.tabIndex=0; li.innerHTML=`<span>${esc(t)}</span><button type="button" class="tcopy">복사</button>`;
-    const pick=()=>{pickedTitle=i;render(isExample);};
+    const pick=()=>{pickedTitle=i;render(isExample); if (result.histId) saveHist(result);};
     li.onclick=e=>{
-      if (e.target.closest(".tcopy")){ pickedTitle=i; [...ul.children].forEach((x,k)=>x.classList.toggle("on", k===i)); copy(t, e.target); return; }
+      if (e.target.closest(".tcopy")){ pickedTitle=i; [...ul.children].forEach((x,k)=>x.classList.toggle("on", k===i)); copy(t, e.target); if (result.histId) saveHist(result); return; }
       if (String(getSelection?.() || "").trim()) return;   // 글자를 드래그해 선택 중이면 그대로 둠
       pick();
     };
@@ -820,6 +847,7 @@ function render(isExample){
   m.className = "meter " + (isExample ? "" : (n>=lo-50&&n<=hi+150 ? "ok":"off"));
 }
 $("postedChk").addEventListener("change", e=>{
+  if (result && result.source!=="inbox" && result.histId){ result.posted = e.target.checked; saveHist(result); return; }
   if (!result || result.source!=="inbox") return;
   const p = store.get("lab-posted", {}); if (e.target.checked) p[result.id]=Date.now(); else delete p[result.id];
   store.set("lab-posted", p); renderInboxList();
@@ -1275,7 +1303,7 @@ $("go").onclick = async ()=>{
     };
     ideas.forEach(idea=>{ slots[Number(idea.slot)-1] = { kind:"empty", idea }; });
     pickedTitle=0; render(false); renderCovers();
-    store.set("lab-last", result);
+    saveHist(result);
     if (ideas.length && MODE.cfg.pexels){
       setStatus("빈 사진 자리에 어울리는 무료 사진을 찾는 중…");
       await fillSlots(ideas); render(false); renderCovers();
@@ -1411,8 +1439,9 @@ $("inboxReload").onclick = loadInbox;
 function showTab(which){
   const inbox = which==="inbox", kwv = which==="kw";
   $("kwView").hidden = !kwv; $("mainGrid").hidden = kwv;
-  $("writePanel").hidden = inbox; $("inboxPanel").hidden = !inbox;
-  $("tabWrite").classList.toggle("on", which==="write"); $("tabInbox").classList.toggle("on", inbox); $("tabKw").classList.toggle("on", kwv);
+  $("writePanel").hidden = which!=="write"; $("inboxPanel").hidden = !inbox; $("histPanel").hidden = which!=="hist";
+  $("tabWrite").classList.toggle("on", which==="write"); $("tabInbox").classList.toggle("on", inbox); $("tabKw").classList.toggle("on", kwv); $("tabHist").classList.toggle("on", which==="hist");
+  if (which==="hist") renderHist();
   if (inbox && !inboxItems.length) loadInbox();
   try{ history.replaceState(null, "", "#" + which); }catch{}
   window.scrollTo({top:0});
@@ -1420,6 +1449,7 @@ function showTab(which){
 $("tabWrite").onclick = ()=>showTab("write");
 $("tabInbox").onclick = ()=>showTab("inbox");
 $("tabKw").onclick = ()=>showTab("kw");
+$("tabHist").onclick = ()=>showTab("hist");
 
 /* ---------- 키워드 찾기 ---------- */
 let kwList = [], kwSeeds = [];
@@ -1582,10 +1612,89 @@ function applyBlogChoice(v, setCat){
 $("blogs").addEventListener("change", e=>{
   const v = e.target.value; if (!BLOGS[v]) return;
   store.set("lab-blog", v); applyBlogChoice(v, true);
-  if (result && result.source !== "inbox" && result !== EXAMPLE){ result.blog = v; store.set("lab-last", result); render(false); }
+  if (result && result.source !== "inbox" && result !== EXAMPLE){ result.blog = v; if (result.histId) saveHist(result); else store.set("lab-last", result); render(false); }
 });
 applyBlogChoice(store.get("lab-blog", "ljh840125"), true);
 loadEndImgs().then(()=>{ if (result) render(result === EXAMPLE); });
+
+/* ---------- 내 원고 목록 (Claude 안: 계정에 저장 → PC·휴대폰 공유 / 넷리파이: 이 기기에 저장) ---------- */
+const hist = { mode: "local", items: [], col: null };
+function loadLocalHist(){ hist.items = store.get("lab-hist", []); renderHist(); }
+async function initHistory(){
+  if (window.claude){
+    try{
+      const db = await window.claude.use("db"), user = await window.claude.use("user");
+      const uid = user ? await user.id() : null;
+      if (db && uid){
+        hist.mode = "db";
+        hist.col = db.doc(`data/users/${uid}/profile`).collection("posts");
+        $("histNote").textContent = "공방에서 쓴 원고가 자동으로 저장돼요. PC와 휴대폰 어디서 열어도 같은 목록이 보여요. 사진은 저장되지 않아서, 다시 열면 [사진] 자리만 보여요.";
+        hist.col.orderBy("at", "desc").limit(300).onSnapshot(snap=>{
+          hist.items = snap.docs.map(d=>({ id: d.id, ...d.data() })); renderHist();
+        }, ()=>{ hist.mode = "local"; loadLocalHist(); });
+        return;
+      }
+    }catch{}
+  }
+  $("histNote").textContent = "공방에서 쓴 원고가 이 기기(브라우저)에 자동으로 저장돼요. 사진은 저장되지 않아요.";
+  loadLocalHist();
+}
+let histSaving = Promise.resolve();
+function saveHist(r){
+  if (!r || r === EXAMPLE || r.source === "inbox") return;
+  const id = r.histId || ("p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  r.histId = id; r.histAt = r.histAt || Date.now();
+  const e = { at: r.histAt, blog: r.blog || "", cat: r.cat || "", titles: r.titles || [], pickedTitle, keywords: r.keywords || [],
+    body: r.body || "", hashtags: r.hashtags || [], mood: r.mood || "", cover: r.cover || null, place: r.place || "",
+    links: r.links || [], len: r.len || null, topKeyword: r.topKeyword || "", userPhotos: r.userPhotos || 0, posted: !!r.posted };
+  const local = ()=>{ const arr = store.get("lab-hist", []); const k = arr.findIndex(x=>x.id === id); if (k >= 0) arr[k] = { id, ...e }; else arr.unshift({ id, ...e }); store.set("lab-hist", arr.slice(0, 100)); if (hist.mode !== "db"){ hist.items = arr; renderHist(); } };
+  if (hist.mode === "db"){
+    histSaving = histSaving.then(()=>hist.col.doc(id).set(e)).catch(err=>{
+      if (err?.code === "quota_exceeded") $("histStatus").textContent = "저장 공간이 가득 찼어요. 오래된 원고를 지워 주세요.";
+      local();
+    });
+  } else local();
+  store.set("lab-last", r);
+}
+function histDate(t){ const d = new Date(t); return `${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
+function renderHist(){
+  const q = $("histQ").value.trim().toLowerCase(), bl = $("histBlog").value;
+  const list = hist.items.filter(x=>(!bl || x.blog === bl) && (!q || [...(x.titles||[]), ...(x.keywords||[])].join(" ").toLowerCase().includes(q)));
+  $("histStatus").textContent = hist.items.length ? (list.length ? "" : "찾는 원고가 없어요.") : "아직 저장된 원고가 없어요. '새 글 쓰기'에서 원고를 쓰면 여기에 쌓여요.";
+  $("histList").innerHTML = list.map(x=>{
+    const t = (x.titles||[])[x.pickedTitle||0] || (x.titles||[])[0] || "(제목 없음)";
+    return `<li tabindex="0" data-h="${esc(x.id)}" class="${result && result.histId===x.id ? "on" : ""}">
+      <span class="row"><span class="d">${esc(histDate(x.at))} ${x.blog ? `<span class="pill blog">${esc(x.blog)}</span>` : ""} ${x.posted ? '<span class="pill done">올림</span>' : ""}</span>
+      <button type="button" class="hdel" data-del="${esc(x.id)}">삭제</button></span>
+      <span class="t">${esc(t)}</span></li>`;
+  }).join("");
+}
+function openHist(id){
+  const x = hist.items.find(i=>i.id === id); if (!x) return;
+  slots = []; coverAI = null;
+  result = { ...x, id: undefined, source: "hist", histId: x.id, histAt: x.at };
+  pickedTitle = Math.min(x.pickedTitle || 0, (x.titles||[]).length - 1);
+  if (x.blog) applyBlogChoice(x.blog, false);
+  render(false); renderCovers(); renderHist();
+  if (matchMedia("(max-width:860px)").matches) document.querySelector('[aria-label="완성 원고"]').scrollIntoView({behavior:"smooth"});
+}
+$("histList").addEventListener("click", async e=>{
+  const del = e.target.closest("[data-del]");
+  if (del){
+    if (!del.classList.contains("arm")){ del.classList.add("arm"); del.textContent = "한 번 더 누르면 삭제"; setTimeout(()=>{ del.classList.remove("arm"); del.textContent = "삭제"; }, 3000); return; }
+    const id = del.dataset.del;
+    if (hist.mode === "db"){ try{ await hist.col.doc(id).delete(); }catch{ $("histStatus").textContent = "지우지 못했어요. 다시 눌러 주세요."; } }
+    store.set("lab-hist", store.get("lab-hist", []).filter(x=>x.id !== id));
+    if (hist.mode !== "db"){ hist.items = hist.items.filter(x=>x.id !== id); renderHist(); }
+    if (result && result.histId === id){ result.histId = null; render(false); }
+    return;
+  }
+  const li = e.target.closest("li[data-h]"); if (li) openHist(li.dataset.h);
+});
+$("histList").addEventListener("keydown", e=>{ if ((e.key==="Enter"||e.key===" ") && e.target.dataset.h){ e.preventDefault(); openHist(e.target.dataset.h); } });
+$("histQ").addEventListener("input", renderHist);
+$("histBlog").addEventListener("change", renderHist);
+initHistory();
 
 /* ---------- 시작 ---------- */
 (async ()=>{
