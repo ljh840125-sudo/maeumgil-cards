@@ -1588,7 +1588,7 @@ $("keybar").addEventListener("submit", async e=>{
   try{
     const r = await fetch("/api/health?auth=1", { headers: hdr() });
     const j = await r.json();
-    if (j.authOk){ $("keybar").hidden = true; $("appKey").value=""; setStatus("비밀번호를 저장했어요."); }
+    if (j.authOk){ $("keybar").hidden = true; $("appKey").value=""; setStatus("비밀번호를 저장했어요."); initHistory(); }
     else $("keymsg").textContent = j.password ? "비밀번호가 맞지 않아요." : "넷리파이에 APP_PASSWORD를 먼저 설정해 주세요.";
   }catch{ $("keymsg").textContent = "서버에 연결하지 못했어요."; }
 });
@@ -1646,6 +1646,22 @@ async function initHistory(){
       }
     }catch{}
   }
+  if (MODE.server && appKey()){
+    try{
+      const r = await apiFetch("/api/history");
+      if (r.ok){
+        const j = await r.json();
+        hist.mode = "server"; hist.items = j.items || []; hist.ready = true;
+        $("histNote").textContent = "공방에서 쓴 원고가 넷리파이 서버에 자동으로 저장돼요. PC와 휴대폰 어디서 열어도 같은 목록이 보여요. 사진은 저장되지 않아요.";
+        // 이 기기에만 있던 원고를 서버로 옮기기
+        const local = store.get("lab-hist", []).filter(x=>!hist.items.some(y=>y.id === x.id));
+        for (const x of local){ await apiFetch("/api/history", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(x) }).catch(()=>{}); hist.items.push(x); }
+        if (local.length){ hist.items.sort((a,b)=>(b.at||0)-(a.at||0)); store.set("lab-hist", []); }
+        renderHist(); adoptLast();
+        return;
+      }
+    }catch{}
+  }
   $("histNote").textContent = "공방에서 쓴 원고가 이 기기(브라우저)에 자동으로 저장돼요. 사진은 저장되지 않아요.";
   loadLocalHist();
 }
@@ -1658,7 +1674,13 @@ function saveHist(r){
     body: r.body || "", hashtags: r.hashtags || [], mood: r.mood || "", cover: r.cover || null, place: r.place || "",
     links: r.links || [], len: r.len || null, topKeyword: r.topKeyword || "", userPhotos: r.userPhotos || 0, posted: !!r.posted };
   const local = ()=>{ const arr = store.get("lab-hist", []); const k = arr.findIndex(x=>x.id === id); if (k >= 0) arr[k] = { id, ...e }; else arr.unshift({ id, ...e }); store.set("lab-hist", arr.slice(0, 100)); if (hist.mode !== "db"){ hist.items = arr; renderHist(); } };
-  if (hist.mode === "db"){
+  if (hist.mode === "server"){
+    const row = { id, ...e }, k = hist.items.findIndex(x=>x.id === id);
+    if (k >= 0) hist.items[k] = row; else hist.items.unshift(row);
+    renderHist();
+    histSaving = histSaving.then(()=>apiFetch("/api/history", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(row) }))
+      .then(r=>{ if (!r.ok) throw 0; }).catch(()=>{ $("histStatus").textContent = "서버에 저장하지 못해 이 기기에 저장했어요."; local(); });
+  } else if (hist.mode === "db"){
     histSaving = histSaving.then(()=>hist.col.doc(id).set(e)).catch(err=>{
       if (err?.code === "quota_exceeded") $("histStatus").textContent = "저장 공간이 가득 찼어요. 오래된 원고를 지워 주세요.";
       local();
@@ -1694,6 +1716,7 @@ $("histList").addEventListener("click", async e=>{
     if (!del.classList.contains("arm")){ del.classList.add("arm"); del.textContent = "한 번 더 누르면 삭제"; setTimeout(()=>{ del.classList.remove("arm"); del.textContent = "삭제"; }, 3000); return; }
     const id = del.dataset.del;
     if (hist.mode === "db"){ try{ await hist.col.doc(id).delete(); }catch{ $("histStatus").textContent = "지우지 못했어요. 다시 눌러 주세요."; } }
+    if (hist.mode === "server"){ try{ await apiFetch("/api/history?id=" + encodeURIComponent(id), { method:"DELETE" }); }catch{} hist.items = hist.items.filter(x=>x.id !== id); renderHist(); }
     store.set("lab-hist", store.get("lab-hist", []).filter(x=>x.id !== id));
     if (hist.mode !== "db"){ hist.items = hist.items.filter(x=>x.id !== id); renderHist(); }
     if (result && result.histId === id){ result.histId = null; render(false); }
@@ -1704,7 +1727,6 @@ $("histList").addEventListener("click", async e=>{
 $("histList").addEventListener("keydown", e=>{ if ((e.key==="Enter"||e.key===" ") && e.target.dataset.h){ e.preventDefault(); openHist(e.target.dataset.h); } });
 $("histQ").addEventListener("input", renderHist);
 $("histBlog").addEventListener("change", renderHist);
-initHistory();
 
 /* ---------- 시작 ---------- */
 (async ()=>{
@@ -1729,6 +1751,7 @@ initHistory();
     }catch{}
   }
   updateModeline();
+  initHistory();
   if (MODE.server){
     $("tabInbox").hidden = false; $("tabKw").hidden = false;
     if (!appKey()) showKeybar("처음 한 번만 넣으면 이 기기에 저장돼요.");
